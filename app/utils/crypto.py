@@ -32,8 +32,10 @@ def aes_encrypt(plaintext: str, key: str) -> str:
     返回：
         Base64 编码的密文字符串
     """
-    # 密钥必须为 32 字节
-    key_bytes = key.encode("utf-8")[:32].ljust(32, b"\0")
+    # 密钥编码为字节，必须恰好为32字节
+    key_bytes = key.encode("utf-8")
+    if len(key_bytes) != 32:
+        raise ValueError("AES密钥长度必须为32字节")
 
     # PKCS7 填充（等同于 Java 的 PKCS5Padding）
     padder = sym_padding.PKCS7(128).padder()
@@ -58,8 +60,10 @@ def aes_decrypt(ciphertext: str, key: str) -> str:
     返回：
         解密后的明文字符串
     """
-    # 密钥必须为 32 字节
-    key_bytes = key.encode("utf-8")[:32].ljust(32, b"\0")
+    # 密钥编码为字节，必须恰好为32字节
+    key_bytes = key.encode("utf-8")
+    if len(key_bytes) != 32:
+        raise ValueError("AES密钥长度必须为32字节")
 
     # Base64 解码
     encrypted = base64.b64decode(ciphertext)

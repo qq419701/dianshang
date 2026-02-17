@@ -170,7 +170,7 @@ def save_config():
             if aes_secret and aes_secret != "******":
                 config.aes_secret = system_aes_encrypt(aes_secret)
 
-            config.is_enabled = 1 if request.form.get("is_enabled") else 0
+            config.is_enabled = 1 if request.form.get("is_enabled", "0") == "1" else 0
 
         elif config_type == "game":
             # 保存游戏点卡配置
@@ -190,7 +190,7 @@ def save_config():
             if md5_secret and md5_secret != "******":
                 config.md5_secret = system_aes_encrypt(md5_secret)
 
-            config.is_enabled = 1 if request.form.get("is_enabled") else 0
+            config.is_enabled = 1 if request.form.get("is_enabled", "0") == "1" else 0
 
         elif config_type == "agiso":
             # 保存阿奇索配置
@@ -212,7 +212,7 @@ def save_config():
             if access_token and access_token != "******":
                 config.access_token = system_aes_encrypt(access_token)
 
-            config.is_enabled = 1 if request.form.get("is_enabled") else 0
+            config.is_enabled = 1 if request.form.get("is_enabled", "0") == "1" else 0
 
         db.session.commit()
         logger.info(f"保存商户 {merchant_id} 的 {config_type} 配置成功")
