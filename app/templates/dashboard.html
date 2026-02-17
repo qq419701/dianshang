@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}首页 — 电商平台管理系统{% endblock %}
+
+{% block content %}
+<!-- 页面标题 -->
+<h2 style="margin-bottom: 20px; font-size: 20px;">📊 数据概览</h2>
+
+<!-- 统计面板 -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="label">📋 总订单数</div>
+        <div class="value">{{ total_orders }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">📅 今日订单</div>
+        <div class="value">{{ today_orders }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">✅ 成功订单</div>
+        <div class="value" style="color: #34a853;">{{ success_orders }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">⏳ 处理中订单</div>
+        <div class="value" style="color: #b45309;">{{ pending_orders }}</div>
+    </div>
+</div>
+
+<!-- 最近订单 -->
+<div class="card">
+    <h2>📃 最近订单</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>我方订单号</th>
+                <th>京东订单号</th>
+                <th>业务类型</th>
+                <th>订单状态</th>
+                <th>金额（元）</th>
+                <th>创建时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in recent_orders %}
+            <tr>
+                <td>{{ order.order_no }}</td>
+                <td>{{ order.jd_order_no }}</td>
+                <td>
+                    {% if order.biz_type == 1 %}
+                        <span class="badge badge-info">通用交易</span>
+                    {% else %}
+                        <span class="badge badge-info">游戏点卡</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if order.order_status == 0 or order.order_status == 1 %}
+                        <span class="badge badge-success">成功</span>
+                    {% elif order.order_status == 2 %}
+                        <span class="badge badge-danger">失败</span>
+                    {% elif order.order_status == 3 %}
+                        <span class="badge badge-warning">处理中</span>
+                    {% elif order.order_status == 4 %}
+                        <span class="badge badge-danger">异常</span>
+                    {% else %}
+                        <span class="badge">未知</span>
+                    {% endif %}
+                </td>
+                <td>{{ "%.2f"|format((order.amount or 0) / 100) }}</td>
+                <td>{{ order.create_time.strftime('%Y-%m-%d %H:%M:%S') if order.create_time else '-' }}</td>
+            </tr>
+            {% endfor %}
+            {% if not recent_orders %}
+            <tr>
+                <td colspan="6" style="text-align: center; color: #999; padding: 40px;">暂无订单数据</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

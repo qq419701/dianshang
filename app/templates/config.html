@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}系统配置 — 电商平台管理系统{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 20px; font-size: 20px;">⚙️ 系统配置</h2>
+
+<!-- 接口地址生成器 -->
+<div class="card">
+    <h2>🔗 接口地址生成器</h2>
+    <p style="font-size: 13px; color: #666; margin-bottom: 12px;">
+        输入您的域名，自动生成需要提交给京东的所有接口地址
+    </p>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <input type="text" id="domainInput" placeholder="例如：https://yourdomain.com"
+               style="flex: 1; padding: 8px 12px; border: 1px solid #d0d5dd; border-radius: 6px;">
+        <button class="btn btn-primary" onclick="generateUrls()">生成地址</button>
+    </div>
+    <div id="urlResult" style="margin-top: 16px; display: none;">
+        <h3 style="font-size: 14px; margin: 12px 0 8px;">京东通用交易接口地址：</h3>
+        <ul class="url-list" id="generalUrls"></ul>
+        <h3 style="font-size: 14px; margin: 12px 0 8px;">京东游戏点卡接口地址：</h3>
+        <ul class="url-list" id="gameUrls"></ul>
+    </div>
+</div>
+
+<!-- 配置选项卡 -->
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('tab-general')">京东通用交易配置</div>
+    <div class="tab" onclick="switchTab('tab-game')">京东游戏点卡配置</div>
+    <div class="tab" onclick="switchTab('tab-agiso')">阿奇索开放平台配置</div>
+</div>
+
+<!-- 京东通用交易配置 -->
+<div class="tab-content active" id="tab-general">
+    <div class="card">
+        <h2>京东通用交易平台配置</h2>
+        <form id="generalForm">
+            <input type="hidden" name="config_type" value="general">
+            <input type="hidden" name="merchant_id" value="{{ merchant_id }}">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label>商家ID（vendorId）</label>
+                    <input type="number" name="vendor_id"
+                           value="{{ general_config.vendor_id if general_config else '' }}"
+                           placeholder="京东分配的商家唯一编号">
+                </div>
+                <div class="form-group">
+                    <label>MD5签名密钥</label>
+                    <input type="password" name="md5_secret"
+                           value="{{ '******' if general_config and general_config.md5_secret else '' }}"
+                           placeholder="签名私钥">
+                </div>
+                <div class="form-group">
+                    <label>AES加密密钥（32字节）</label>
+                    <input type="password" name="aes_secret"
+                           value="{{ '******' if general_config and general_config.aes_secret else '' }}"
+                           placeholder="卡密加密密钥，必须32字节">
+                </div>
+                <div class="form-group">
+                    <label>我方接口基础地址</label>
+                    <input type="url" name="our_api_url"
+                           value="{{ general_config.our_api_url if general_config else '' }}"
+                           placeholder="例如：https://yourdomain.com">
+                </div>
+                <div class="form-group">
+                    <label>京东回调地址</label>
+                    <input type="url" name="jd_callback_url"
+                           value="{{ general_config.jd_callback_url if general_config else '' }}"
+                           placeholder="测试：https://tsp.shop.jd.com/vtp/produce/notify">
+                </div>
+                <div class="form-group">
+                    <label>启用状态</label>
+                    <select name="is_enabled">
+                        <option value="1" {% if general_config and general_config.is_enabled == 1 %}selected{% endif %}>启用</option>
+                        <option value="0" {% if general_config and general_config.is_enabled == 0 %}selected{% endif %}>禁用</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success" onclick="saveConfig('generalForm')" style="margin-top: 8px;">
+                💾 保存配置
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- 京东游戏点卡配置 -->
+<div class="tab-content" id="tab-game">
+    <div class="card">
+        <h2>京东游戏点卡平台配置</h2>
+        <form id="gameForm">
+            <input type="hidden" name="config_type" value="game">
+            <input type="hidden" name="merchant_id" value="{{ merchant_id }}">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label>合作商编号（customerId）</label>
+                    <input type="number" name="customer_id"
+                           value="{{ game_config.customer_id if game_config else '' }}"
+                           placeholder="京东分配的合作商编号">
+                </div>
+                <div class="form-group">
+                    <label>MD5签名私钥</label>
+                    <input type="password" name="md5_secret"
+                           value="{{ '******' if game_config and game_config.md5_secret else '' }}"
+                           placeholder="签名私钥">
+                </div>
+                <div class="form-group">
+                    <label>我方接口基础地址</label>
+                    <input type="url" name="our_api_url"
+                           value="{{ game_config.our_api_url if game_config else '' }}"
+                           placeholder="例如：https://yourdomain.com">
+                </div>
+                <div class="form-group">
+                    <label>直充回调地址</label>
+                    <input type="url" name="jd_direct_callback_url"
+                           value="{{ game_config.jd_direct_callback_url if game_config else 'https://card.jd.com/api/gameApi.action' }}"
+                           placeholder="正式：https://card.jd.com/api/gameApi.action">
+                </div>
+                <div class="form-group">
+                    <label>卡密回调地址</label>
+                    <input type="url" name="jd_card_callback_url"
+                           value="{{ game_config.jd_card_callback_url if game_config else 'https://card.jd.com/api/cardApi.action' }}"
+                           placeholder="正式：https://card.jd.com/api/cardApi.action">
+                </div>
+                <div class="form-group">
+                    <label>启用状态</label>
+                    <select name="is_enabled">
+                        <option value="1" {% if game_config and game_config.is_enabled == 1 %}selected{% endif %}>启用</option>
+                        <option value="0" {% if game_config and game_config.is_enabled == 0 %}selected{% endif %}>禁用</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success" onclick="saveConfig('gameForm')" style="margin-top: 8px;">
+                💾 保存配置
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- 阿奇索开放平台配置 -->
+<div class="tab-content" id="tab-agiso">
+    <div class="card">
+        <h2>阿奇索开放平台配置（可选模块）</h2>
+        <p style="font-size: 13px; color: #999; margin-bottom: 16px;">
+            ⚠️ 此模块为可选功能。未配置时不影响主流程，订单页"阿奇索自动发货"按钮将自动隐藏。
+        </p>
+        <form id="agisoForm">
+            <input type="hidden" name="config_type" value="agiso">
+            <input type="hidden" name="merchant_id" value="{{ merchant_id }}">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                    <label>API网关地址</label>
+                    <input type="url" name="host"
+                           value="{{ agiso_config.host if agiso_config else 'https://open.agiso.com' }}"
+                           placeholder="https://open.agiso.com">
+                </div>
+                <div class="form-group">
+                    <label>端口</label>
+                    <input type="number" name="port"
+                           value="{{ agiso_config.port if agiso_config else '' }}"
+                           placeholder="默认不填">
+                </div>
+                <div class="form-group">
+                    <label>应用ID（AppId）</label>
+                    <input type="text" name="app_id"
+                           value="{{ agiso_config.app_id if agiso_config else '' }}"
+                           placeholder="在阿奇索开放平台创建应用后获取">
+                </div>
+                <div class="form-group">
+                    <label>应用密钥（AppSecret）</label>
+                    <input type="password" name="app_secret"
+                           value="{{ '******' if agiso_config and agiso_config.app_secret else '' }}"
+                           placeholder="应用密钥">
+                </div>
+                <div class="form-group">
+                    <label>授权令牌（AccessToken）</label>
+                    <input type="password" name="access_token"
+                           value="{{ '******' if agiso_config and agiso_config.access_token else '' }}"
+                           placeholder="店铺授权后获取的Token">
+                </div>
+                <div class="form-group">
+                    <label>通用交易路由</label>
+                    <input type="text" name="general_trade_route"
+                           value="{{ agiso_config.general_trade_route if agiso_config else '' }}"
+                           placeholder="通用交易路由路径">
+                </div>
+                <div class="form-group">
+                    <label>点卡路由</label>
+                    <input type="text" name="game_card_route"
+                           value="{{ agiso_config.game_card_route if agiso_config else '' }}"
+                           placeholder="游戏点卡路由路径">
+                </div>
+                <div class="form-group">
+                    <label>启用状态</label>
+                    <select name="is_enabled">
+                        <option value="0" {% if not agiso_config or agiso_config.is_enabled == 0 %}selected{% endif %}>禁用</option>
+                        <option value="1" {% if agiso_config and agiso_config.is_enabled == 1 %}selected{% endif %}>启用</option>
+                    </select>
+                </div>
+            </div>
+            <button type="button" class="btn btn-success" onclick="saveConfig('agisoForm')" style="margin-top: 8px;">
+                💾 保存配置
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /**
+     * 生成接口地址
+     * 输入域名后自动生成所有需要提交给京东的接口地址
+     */
+    function generateUrls() {
+        var domain = document.getElementById('domainInput').value.trim();
+        if (!domain) {
+            showToast('请输入域名', 'error');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('domain', domain);
+
+        fetch('/admin/generate-urls', { method: 'POST', body: formData })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var generalHtml = '';
+                    for (var key in data.data.general) {
+                        generalHtml += '<li><strong>' + key + '：</strong><code>' + data.data.general[key] + '</code></li>';
+                    }
+                    document.getElementById('generalUrls').innerHTML = generalHtml;
+
+                    var gameHtml = '';
+                    for (var key2 in data.data.game) {
+                        gameHtml += '<li><strong>' + key2 + '：</strong><code>' + data.data.game[key2] + '</code></li>';
+                    }
+                    document.getElementById('gameUrls').innerHTML = gameHtml;
+
+                    document.getElementById('urlResult').style.display = 'block';
+                    showToast('接口地址生成成功', 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(function() { showToast('请求失败', 'error'); });
+    }
+
+    /**
+     * 保存配置
+     * 将表单数据提交到后端保存
+     * @param {string} formId - 表单元素ID
+     */
+    function saveConfig(formId) {
+        var form = document.getElementById(formId);
+        var formData = new FormData(form);
+
+        fetch('/admin/config/save', { method: 'POST', body: formData })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    showToast('配置保存成功', 'success');
+                } else {
+                    showToast(data.message || '保存失败', 'error');
+                }
+            })
+            .catch(function() { showToast('请求失败', 'error'); });
+    }
+</script>
+{% endblock %}

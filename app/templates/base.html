@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}电商平台管理系统{% endblock %}</title>
+    <style>
+        /* ============================
+         *  全局基础样式
+         * ============================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        /* ============================
+         *  顶部导航栏
+         * ============================ */
+        .navbar {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: #fff;
+            padding: 0 24px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar h1 { font-size: 18px; font-weight: 600; }
+        .navbar nav { margin-left: 40px; display: flex; gap: 4px; }
+        .navbar nav a {
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .navbar nav a:hover,
+        .navbar nav a.active {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+
+        /* ============================
+         *  主内容区
+         * ============================ */
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        /* ============================
+         *  卡片组件
+         * ============================ */
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            padding: 20px 24px;
+            margin-bottom: 20px;
+        }
+        .card h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a73e8;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e8eaf0;
+        }
+
+        /* ============================
+         *  统计面板
+         * ============================ */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .stat-card .label { font-size: 13px; color: #666; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #1a73e8; }
+
+        /* ============================
+         *  数据表格
+         * ============================ */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f8f9fc;
+            font-weight: 600;
+            color: #555;
+            white-space: nowrap;
+        }
+        tr:hover { background: #f5f7ff; }
+
+        /* ============================
+         *  表单组件
+         * ============================ */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #1a73e8;
+        }
+
+        /* ============================
+         *  按钮
+         * ============================ */
+        .btn {
+            display: inline-block;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: #1a73e8; color: #fff; }
+        .btn-success { background: #34a853; color: #fff; }
+        .btn-danger  { background: #ea4335; color: #fff; }
+        .btn-secondary { background: #5f6368; color: #fff; }
+
+        /* ============================
+         *  状态标签
+         * ============================ */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-success { background: #e6f4ea; color: #137333; }
+        .badge-warning { background: #fef7e0; color: #b45309; }
+        .badge-danger  { background: #fce8e6; color: #c5221f; }
+        .badge-info    { background: #e8f0fe; color: #1967d2; }
+
+        /* ============================
+         *  搜索栏
+         * ============================ */
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .search-bar input,
+        .search-bar select {
+            padding: 8px 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+        }
+
+        /* ============================
+         *  分页
+         * ============================ */
+        .pagination {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .pagination a {
+            display: inline-block;
+            padding: 6px 12px;
+            border: 1px solid #d0d5dd;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+            font-size: 13px;
+        }
+        .pagination a.active {
+            background: #1a73e8;
+            color: #fff;
+            border-color: #1a73e8;
+        }
+
+        /* ============================
+         *  选项卡
+         * ============================ */
+        .tabs {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e8eaf0;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: #1a73e8; }
+        .tab.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ============================
+         *  弹出提示
+         * ============================ */
+        .toast {
+            position: fixed;
+            top: 80px;
+            right: 24px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            z-index: 9999;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.success { background: #34a853; }
+        .toast.error   { background: #ea4335; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+
+        /* ============================
+         *  URL展示区
+         * ============================ */
+        .url-list { list-style: none; }
+        .url-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #eee;
+            font-size: 13px;
+        }
+        .url-list li strong { color: #555; margin-right: 8px; }
+        .url-list li code {
+            background: #f0f4ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #1a73e8;
+            word-break: break-all;
+        }
+
+        /* ============================
+         *  响应式适配
+         * ============================ */
+        @media (max-width: 768px) {
+            .navbar { padding: 0 12px; }
+            .navbar nav { margin-left: 12px; gap: 2px; }
+            .navbar nav a { padding: 6px 10px; font-size: 12px; }
+            .container { padding: 0 8px; }
+            table { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <div class="navbar">
+        <h1>📦 电商平台管理系统</h1>
+        <nav>
+            <a href="/admin/" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">首页</a>
+            <a href="/admin/orders" class="{% if request.endpoint == 'admin.order_list' %}active{% endif %}">订单管理</a>
+            <a href="/admin/config" class="{% if request.endpoint == 'admin.config_page' %}active{% endif %}">系统配置</a>
+            <a href="/admin/callbacks" class="{% if request.endpoint == 'admin.callback_list' %}active{% endif %}">回调日志</a>
+        </nav>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 全局提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        /**
+         * 显示全局提示消息
+         * @param {string} message - 提示内容
+         * @param {string} type    - 类型：success / error
+         */
+        function showToast(message, type) {
+            var toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + (type || 'success');
+            toast.style.display = 'block';
+            setTimeout(function() { toast.style.display = 'none'; }, 3000);
+        }
+
+        /**
+         * 切换选项卡
+         * @param {string} tabId - 目标选项卡ID
+         */
+        function switchTab(tabId) {
+            // 隐藏所有选项卡内容
+            var contents = document.querySelectorAll('.tab-content');
+            for (var i = 0; i < contents.length; i++) {
+                contents[i].classList.remove('active');
+            }
+            // 取消所有选项卡激活状态
+            var tabs = document.querySelectorAll('.tab');
+            for (var j = 0; j < tabs.length; j++) {
+                tabs[j].classList.remove('active');
+            }
+            // 激活目标选项卡
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
