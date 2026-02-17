@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}订单管理 — 电商平台管理系统{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 20px; font-size: 20px;">📋 订单管理</h2>
+
+<!-- 搜索栏 -->
+<div class="card">
+    <form method="GET" action="/admin/orders" class="search-bar">
+        <input type="text" name="search" value="{{ search }}" placeholder="输入京东订单号或我方订单号搜索...">
+        <select name="biz_type">
+            <option value="0" {% if biz_type == 0 %}selected{% endif %}>全部业务类型</option>
+            <option value="1" {% if biz_type == 1 %}selected{% endif %}>通用交易</option>
+            <option value="2" {% if biz_type == 2 %}selected{% endif %}>游戏点卡</option>
+        </select>
+        <select name="status">
+            <option value="-1" {% if status == -1 %}selected{% endif %}>全部状态</option>
+            <option value="0" {% if status == 0 %}selected{% endif %}>成功</option>
+            <option value="1" {% if status == 1 %}selected{% endif %}>充值中</option>
+            <option value="2" {% if status == 2 %}selected{% endif %}>失败</option>
+            <option value="3" {% if status == 3 %}selected{% endif %}>生产中</option>
+            <option value="4" {% if status == 4 %}selected{% endif %}>异常</option>
+        </select>
+        <button type="submit" class="btn btn-primary">🔍 搜索</button>
+    </form>
+</div>
+
+<!-- 订单列表 -->
+<div class="card">
+    <h2>订单列表</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>我方订单号</th>
+                <th>京东订单号</th>
+                <th>业务类型</th>
+                <th>订单状态</th>
+                <th>金额（元）</th>
+                <th>数量</th>
+                <th>充值账号</th>
+                <th>支付时间</th>
+                <th>创建时间</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td>{{ order.order_no }}</td>
+                <td>{{ order.jd_order_no }}</td>
+                <td>
+                    {% if order.biz_type == 1 %}
+                        <span class="badge badge-info">通用交易</span>
+                    {% else %}
+                        <span class="badge badge-info">游戏点卡</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if order.order_status == 0 %}
+                        <span class="badge badge-success">成功</span>
+                    {% elif order.order_status == 1 %}
+                        <span class="badge badge-warning">充值中</span>
+                    {% elif order.order_status == 2 %}
+                        <span class="badge badge-danger">失败</span>
+                    {% elif order.order_status == 3 %}
+                        <span class="badge badge-warning">生产中</span>
+                    {% elif order.order_status == 4 %}
+                        <span class="badge badge-danger">异常</span>
+                    {% else %}
+                        <span class="badge">未知</span>
+                    {% endif %}
+                </td>
+                <td>{{ "%.2f"|format((order.amount or 0) / 100) }}</td>
+                <td>{{ order.quantity or '-' }}</td>
+                <td>{{ order.produce_account or '-' }}</td>
+                <td>{{ order.pay_time.strftime('%Y-%m-%d %H:%M') if order.pay_time else '-' }}</td>
+                <td>{{ order.create_time.strftime('%Y-%m-%d %H:%M') if order.create_time else '-' }}</td>
+            </tr>
+            {% endfor %}
+            {% if not orders %}
+            <tr>
+                <td colspan="9" style="text-align: center; color: #999; padding: 40px;">暂无订单数据</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    <!-- 分页 -->
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}&search={{ search }}&biz_type={{ biz_type }}&status={{ status }}">上一页</a>
+        {% endif %}
+
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                <a href="?page={{ p }}&search={{ search }}&biz_type={{ biz_type }}&status={{ status }}" class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+            {% else %}
+                <span style="padding: 6px;">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}&search={{ search }}&biz_type={{ biz_type }}&status={{ status }}">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
