@@ -72,17 +72,32 @@ def order_list():
     订单管理 — 订单列表页
     支持：
         - 按京东订单号搜索
+        - 按商户筛选
+        - 按店铺筛选
         - 按业务类型筛选（通用交易/游戏点卡）
         - 按订单状态筛选
         - 分页浏览
     """
+    from app.services.auth_service import get_current_user
+    from app.models.merchant import Merchant
+    from app.models.shop import Shop
+    
+    user = get_current_user()
+    
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     search = request.args.get("search", "")
+    merchant_id = request.args.get("merchant_id", 0, type=int)
+    shop_id = request.args.get("shop_id", 0, type=int)
     biz_type = request.args.get("biz_type", 0, type=int)
     status = request.args.get("status", -1, type=int)
 
     query = Order.query
+    
+    # 权限过滤：操作员只能看到自己商户的订单
+    if user.merchant_id:
+        query = query.filter_by(merchant_id=user.merchant_id)
+        merchant_id = user.merchant_id
 
     # 搜索条件
     if search:
@@ -92,6 +107,10 @@ def order_list():
                 Order.order_no.like(f"%{search}%"),
             )
         )
+    if merchant_id > 0:
+        query = query.filter_by(merchant_id=merchant_id)
+    if shop_id > 0:
+        query = query.filter_by(shop_id=shop_id)
     if biz_type > 0:
         query = query.filter_by(biz_type=biz_type)
     if status >= 0:
@@ -101,14 +120,29 @@ def order_list():
     pagination = query.order_by(Order.create_time.desc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
+    
+    # 获取商户列表（用于筛选）
+    if user.merchant_id:
+        merchants = Merchant.query.filter_by(id=user.merchant_id).all()
+    else:
+        merchants = Merchant.query.filter_by(status=1).all()
+    
+    # 获取店铺列表（用于筛选）
+    shops = []
+    if merchant_id > 0:
+        shops = Shop.query.filter_by(merchant_id=merchant_id, is_enabled=1).all()
 
     return render_template(
         "orders.html",
         orders=pagination.items,
         pagination=pagination,
         search=search,
+        merchant_id=merchant_id,
+        shop_id=shop_id,
         biz_type=biz_type,
         status=status,
+        merchants=merchants,
+        shops=shops
     )
 
 
