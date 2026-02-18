@@ -36,6 +36,11 @@ class Order(db.Model):
     product_info = db.Column(db.Text, comment="卡密信息（AES加密存储）")
     notify_url = db.Column(db.String(500), comment="回调地址")
     pay_time = db.Column(db.DateTime, comment="支付时间")
+
+    # 通知记录
+    notified = db.Column(db.SmallInteger, default=0, comment="是否已发送通知：0=否 1=是")
+    notify_send_time = db.Column(db.DateTime, comment="通知发送时间")
+
     remark = db.Column(db.String(500), comment="备注")
 
     create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
