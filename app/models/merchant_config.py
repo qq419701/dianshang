@@ -19,7 +19,7 @@ class MerchantJdConfig(db.Model):
     __tablename__ = "merchant_jd_config"
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
-    merchant_id = db.Column(db.BigInteger, nullable=False, comment="商户ID")
+    merchant_id = db.Column(db.BigInteger, db.ForeignKey("merchants.id"), nullable=False, comment="商户ID")
     biz_type = db.Column(db.SmallInteger, nullable=False, comment="业务类型：1=通用交易, 2=游戏点卡")
 
     # 京东通用交易字段
@@ -43,6 +43,9 @@ class MerchantJdConfig(db.Model):
     update_time = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间"
     )
+
+    # 关联关系
+    merchant = db.relationship("Merchant", back_populates="jd_configs")
 
     # 唯一约束：同一商户同一业务类型只能有一条配置
     __table_args__ = (
