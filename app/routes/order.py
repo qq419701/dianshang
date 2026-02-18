@@ -103,7 +103,7 @@ def order_detail(order_id):
     return render_template('order/detail.html', order=order)
 
 
-@order_bp.route('/notify-success/<int:order_id>', methods=['POST'])
+@order_bp.route('/<int:order_id>/save-cards', methods=['POST'])
 @login_required
 def save_cards(order_id):
     """保存卡密信息"""
@@ -146,48 +146,43 @@ def notify_success(order_id):
         if not order.card_info_parsed:
             return jsonify(success=False, message='请先填写卡密信息')
     
-    # 根据店铺类型调用不同的回调接口
+    # 根据店铺类型和订单类型调用不同的回调接口
     try:
         if shop.shop_type == 1:
             # 游戏点卡平台
-            callback_url = shop.game_direct_callback_url if order.order_type == 1 else shop.game_card_callback_url
+            if order.order_type == 1:
+                # 直充订单
+                success, message = callback_game_direct_success(shop, order)
+            else:
+                # 卡密订单
+                success, message = callback_game_card_deliver(shop, order, order.card_info_parsed)
         else:
             # 通用交易平台
-            callback_url = shop.general_callback_url
+            if order.order_type == 1:
+                # 直充订单
+                success, message = callback_general_success(shop, order)
+            else:
+                # 卡密订单
+                success, message = callback_general_card_deliver(shop, order, order.card_info_parsed)
         
-        if not callback_url:
-            return jsonify(success=False, message='未配置回调地址')
-        
-        # 构造回调数据
-        callback_data = {
-            'order_no': order.jd_order_no,
-            'status': 2,  # 成功
-            'message': '订单处理成功'
-        }
-        
-        # 如果是卡密订单，添加卡密信息
-        if order.order_type == 2:
-            callback_data['cards'] = order.card_info_parsed
-        
-        # TODO: 添加签名
-        # callback_data['sign'] = generate_sign(callback_data, shop.xxx_md5_secret)
-        
-        # 发送回调
-        import requests
-        response = requests.post(callback_url, json=callback_data, timeout=10)
-        
-        if response.status_code == 200:
+        if success:
             # 更新订单状态
             order.order_status = 2
+            order.notify_status = NOTIFY_STATUS_SUCCESS
+            order.notify_time = datetime.now()
             db.session.commit()
             
-            logger.info(f"订单 {order.order_no} 通知成功，回调：{callback_url}")
+            logger.info(f"订单 {order.order_no} 通知成功")
             return jsonify(success=True, message='通知成功')
         else:
-            return jsonify(success=False, message=f'回调失败：HTTP {response.status_code}')
+            order.notify_status = NOTIFY_STATUS_FAILED
+            db.session.commit()
+            return jsonify(success=False, message=message)
     
     except Exception as e:
         logger.error(f"订单 {order.order_no} 通知失败：{e}")
+        order.notify_status = NOTIFY_STATUS_FAILED
+        db.session.commit()
         return jsonify(success=False, message=f'通知失败：{str(e)}')
 
 
@@ -199,22 +194,127 @@ def notify_refund(order_id):
     if not order:
         return jsonify(success=False, message='订单不存在')
     
-    # TODO: 实现退款通知逻辑
-    order.order_status = 4
+    shop = order.shop
+    if not shop:
+        return jsonify(success=False, message='店铺不存在')
+    
+    # 检查是否可以退款
+    if order.order_status == 4:
+        return jsonify(success=False, message='订单已退款')
+    
+    # 根据店铺类型调用对应的退款回调
+    try:
+        if shop.shop_type == 1:
+            # 游戏点卡平台
+            success, message = callback_game_refund(shop, order)
+        else:
+            # 通用交易平台
+            success, message = callback_general_refund(shop, order)
+        
+        if success:
+            # 更新订单状态为已退款
+            order.order_status = 4
+            order.notify_status = NOTIFY_STATUS_SUCCESS
+            order.notify_time = datetime.now()
+            db.session.commit()
+            
+            logger.info(f"订单 {order.order_no} 退款通知成功")
+            return jsonify(success=True, message='退款通知已发送')
+        else:
+            order.notify_status = NOTIFY_STATUS_FAILED
+            db.session.commit()
+            return jsonify(success=False, message=message)
+    
+    except Exception as e:
+        logger.error(f"订单 {order.order_no} 退款通知失败：{e}")
+        order.notify_status = NOTIFY_STATUS_FAILED
+        db.session.commit()
+        return jsonify(success=False, message=f'退款通知失败：{str(e)}')
+
+
+@order_bp.route('/<int:order_id>/agiso-deliver', methods=['POST'])
+@login_required
+def agiso_deliver(order_id):
+    """使用阿奇索自动发货"""
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify(success=False, message='订单不存在')
+    
+    shop = order.shop
+    if not shop:
+        return jsonify(success=False, message='店铺不存在')
+    
+    # 调用阿奇索自动发货服务
+    success, message, data = agiso_auto_deliver(shop, order)
+    
+    if success:
+        # 更新订单状态
+        order.order_status = 2
+        order.notify_status = NOTIFY_STATUS_SUCCESS
+        order.notify_time = datetime.now()
+        db.session.commit()
+        
+        logger.info(f"订单 {order.order_no} 阿奇索发货成功")
+        return jsonify(success=True, message=message)
+    else:
+        return jsonify(success=False, message=message)
+
+
+@order_bp.route('/<int:order_id>/debug-success', methods=['POST'])
+@login_required
+def debug_success(order_id):
+    """自助联调：标记订单为充值成功(不触发回调)"""
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify(success=False, message='订单不存在')
+    
+    # 更新订单状态为2(已完成)
+    order.order_status = 2
     db.session.commit()
     
-    return jsonify(success=True, message='退款通知已发送')
+    logger.info(f"订单 {order.order_no} 自助联调标记为充值成功")
+    return jsonify(success=True, message='订单已标记为充值成功')
+
+
+@order_bp.route('/<int:order_id>/debug-processing', methods=['POST'])
+@login_required
+def debug_processing(order_id):
+    """自助联调：标记订单为充值中"""
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify(success=False, message='订单不存在')
+    
+    # 更新订单状态为1(处理中)
+    order.order_status = 1
+    db.session.commit()
+    
+    logger.info(f"订单 {order.order_no} 自助联调标记为充值中")
+    return jsonify(success=True, message='订单已标记为充值中')
+
+
+@order_bp.route('/<int:order_id>/debug-failed', methods=['POST'])
+@login_required
+def debug_failed(order_id):
+    """自助联调：标记订单为充值失败"""
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify(success=False, message='订单不存在')
+    
+    # 更新订单状态为3(已取消)
+    order.order_status = 3
+    db.session.commit()
+    
+    logger.info(f"订单 {order.order_no} 自助联调标记为充值失败")
+    return jsonify(success=True, message='订单已标记为充值失败')
 
 
 @order_bp.route('/<int:order_id>/detail-html', methods=['GET'])
 @login_required
 def order_detail_html(order_id):
     """返回订单详情HTML片段（用于弹窗）"""
-    from flask import render_template_string
-    
     order = db.session.get(Order, order_id)
     if not order:
         return '<div class="alert alert-error">订单不存在</div>', 404
     
     # 渲染详情页模板的主体部分（不包含外层布局）
-    return render_template('order/detail.html', order=order)
+    return render_template('order/detail_modal.html', order=order)
