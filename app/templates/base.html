@@ -307,7 +307,21 @@
             <a href="/admin/orders" class="{% if request.endpoint == 'admin.order_list' %}active{% endif %}">订单管理</a>
             <a href="/admin/config" class="{% if request.endpoint == 'admin.config_page' %}active{% endif %}">系统配置</a>
             <a href="/admin/callbacks" class="{% if request.endpoint == 'admin.callback_list' %}active{% endif %}">回调日志</a>
+            <a href="/user/" class="{% if request.endpoint == 'user.user_list' %}active{% endif %}">用户管理</a>
+            <a href="/merchant/" class="{% if request.endpoint == 'merchant.merchant_list' %}active{% endif %}">商户管理</a>
+            <a href="/notification/" class="{% if request.endpoint == 'notification.notification_list' %}active{% endif %}">
+                通知消息
+                {% if unread_count > 0 %}
+                <span style="background: #ea4335; color: #fff; border-radius: 10px; padding: 2px 6px; font-size: 11px; margin-left: 4px;">{{ unread_count }}</span>
+                {% endif %}
+            </a>
         </nav>
+        {% if current_user %}
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 14px;">👤 {{ current_user.real_name or current_user.username }}</span>
+            <a href="/auth/logout" style="color: rgba(255,255,255,0.85); text-decoration: none; padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 6px; font-size: 13px;">退出</a>
+        </div>
+        {% endif %}
     </div>
 
     <!-- 主内容区 -->

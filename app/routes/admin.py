@@ -22,6 +22,7 @@ from app.models.merchant_config import MerchantJdConfig, AgisoConfig
 from app.models.callback_log import JdCallback, AgisoLog
 from app.utils.crypto import system_aes_encrypt
 from app.services.agiso_service import is_agiso_enabled
+from app.utils.auth_decorator import login_required, permission_required
 
 # 创建蓝图
 admin_bp = Blueprint("admin", __name__)
@@ -31,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 
 @admin_bp.route("/")
+@login_required
 def dashboard():
     """
     管理后台首页 — 仪表盘
@@ -63,6 +65,8 @@ def dashboard():
 
 
 @admin_bp.route("/orders")
+@login_required
+@permission_required("order:view")
 def order_list():
     """
     订单管理 — 订单列表页
@@ -109,6 +113,8 @@ def order_list():
 
 
 @admin_bp.route("/config")
+@login_required
+@permission_required("config:view")
 def config_page():
     """
     商户配置管理页
@@ -139,6 +145,8 @@ def config_page():
 
 
 @admin_bp.route("/config/save", methods=["POST"])
+@login_required
+@permission_required("config:update")
 def save_config():
     """
     保存商户配置
@@ -225,6 +233,7 @@ def save_config():
 
 
 @admin_bp.route("/generate-urls", methods=["POST"])
+@login_required
 def generate_urls():
     """
     生成接口地址
@@ -252,6 +261,8 @@ def generate_urls():
 
 
 @admin_bp.route("/callbacks")
+@login_required
+@permission_required("order:view")
 def callback_list():
     """
     回调日志 — 查看所有回调记录

@@ -35,3 +35,10 @@ class Config:
 
     # 系统 AES 密钥（用于加密存储敏感数据，必须32字节）
     SYSTEM_AES_KEY = os.getenv("SYSTEM_AES_KEY", "01234567890123456789012345678901")
+    
+    # 邮件配置（用于通知系统）
+    SMTP_SERVER = os.getenv("SMTP_SERVER", "")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
+    SMTP_USER = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    SMTP_FROM = os.getenv("SMTP_FROM", "")
