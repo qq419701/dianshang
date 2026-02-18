@@ -1,0 +1,172 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ '编辑店铺' if shop else '新建店铺' }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-title">{{ '编辑店铺' if shop else '🏪 新建店铺' }}</div>
+    <form method="POST">
+        <div class="form-row">
+            <div class="form-group">
+                <label>店铺名称 *</label>
+                <input type="text" name="shop_name" class="form-control" value="{{ shop.shop_name if shop else '' }}" required>
+            </div>
+            {% if not shop %}
+            <div class="form-group">
+                <label>店铺代码 *</label>
+                <input type="text" name="shop_code" class="form-control" value="" required>
+            </div>
+            {% endif %}
+            <div class="form-group">
+                <label>店铺类型 *</label>
+                <select name="shop_type" class="form-control">
+                    <option value="1" {{ 'selected' if shop and shop.shop_type == 1 }}>游戏点卡</option>
+                    <option value="2" {{ 'selected' if shop and shop.shop_type == 2 }}>通用交易</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>状态</label>
+                <select name="is_enabled" class="form-control">
+                    <option value="1" {{ 'selected' if not shop or shop.is_enabled == 1 }}>启用</option>
+                    <option value="0" {{ 'selected' if shop and shop.is_enabled == 0 }}>禁用</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>到期时间</label>
+                <input type="datetime-local" name="expire_time" class="form-control"
+                       value="{{ shop.expire_time.strftime('%Y-%m-%dT%H:%M') if shop and shop.expire_time else '' }}">
+            </div>
+        </div>
+
+        <div class="section-title">🎮 游戏点卡配置</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>客户ID</label>
+                <input type="text" name="game_customer_id" class="form-control" value="{{ shop.game_customer_id or '' if shop else '' }}">
+            </div>
+            <div class="form-group">
+                <label>MD5密钥</label>
+                <input type="text" name="game_md5_secret" class="form-control" value="{{ shop.game_md5_secret or '' if shop else '' }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>直充回调地址</label>
+                <input type="text" name="game_direct_callback_url" class="form-control" value="{{ shop.game_direct_callback_url or '' if shop else '' }}">
+            </div>
+            <div class="form-group">
+                <label>卡密回调地址</label>
+                <input type="text" name="game_card_callback_url" class="form-control" value="{{ shop.game_card_callback_url or '' if shop else '' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>接口地址</label>
+            <input type="text" name="game_api_url" class="form-control" value="{{ shop.game_api_url or '' if shop else '' }}">
+        </div>
+
+        <div class="section-title">🏪 通用交易配置</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>商家ID</label>
+                <input type="text" name="general_vendor_id" class="form-control" value="{{ shop.general_vendor_id or '' if shop else '' }}">
+            </div>
+            <div class="form-group">
+                <label>MD5密钥</label>
+                <input type="text" name="general_md5_secret" class="form-control" value="{{ shop.general_md5_secret or '' if shop else '' }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>AES密钥</label>
+                <input type="text" name="general_aes_secret" class="form-control" value="{{ shop.general_aes_secret or '' if shop else '' }}">
+            </div>
+            <div class="form-group">
+                <label>回调地址</label>
+                <input type="text" name="general_callback_url" class="form-control" value="{{ shop.general_callback_url or '' if shop else '' }}">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>接口地址</label>
+            <input type="text" name="general_api_url" class="form-control" value="{{ shop.general_api_url or '' if shop else '' }}">
+        </div>
+
+        <div class="section-title">🔌 阿奇索配置</div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>启用阿奇索</label>
+                <select name="agiso_enabled" class="form-control">
+                    <option value="0" {{ 'selected' if not shop or shop.agiso_enabled == 0 }}>否</option>
+                    <option value="1" {{ 'selected' if shop and shop.agiso_enabled == 1 }}>是</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>主机地址</label>
+                <input type="text" name="agiso_host" class="form-control" value="{{ shop.agiso_host or '' if shop else '' }}">
+            </div>
+            <div class="form-group">
+                <label>端口</label>
+                <input type="number" name="agiso_port" class="form-control" value="{{ shop.agiso_port or '' if shop else '' }}">
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>应用ID</label>
+                <input type="text" name="agiso_app_id" class="form-control" value="{{ shop.agiso_app_id or '' if shop else '' }}">
+            </div>
+            <div class="form-group">
+                <label>应用密钥</label>
+                <input type="text" name="agiso_app_secret" class="form-control" value="{{ shop.agiso_app_secret or '' if shop else '' }}">
+            </div>
+            <div class="form-group">
+                <label>访问令牌</label>
+                <input type="text" name="agiso_access_token" class="form-control" value="{{ shop.agiso_access_token or '' if shop else '' }}">
+            </div>
+        </div>
+
+        <div class="section-title">📢 订单通知配置</div>
+        <div class="form-group">
+            <label>启用订单通知</label>
+            <select name="notify_enabled" class="form-control" style="width:auto;">
+                <option value="0" {{ 'selected' if not shop or shop.notify_enabled == 0 }}>否</option>
+                <option value="1" {{ 'selected' if shop and shop.notify_enabled == 1 }}>是</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>钉钉 Webhook 地址</label>
+                <input type="text" name="dingtalk_webhook" class="form-control" value="{{ shop.dingtalk_webhook or '' if shop else '' }}" placeholder="https://oapi.dingtalk.com/robot/send?access_token=xxx">
+            </div>
+            <div class="form-group">
+                <label>钉钉加签密钥</label>
+                <input type="text" name="dingtalk_secret" class="form-control" value="{{ shop.dingtalk_secret or '' if shop else '' }}">
+            </div>
+        </div>
+        {% if shop %}
+        <div class="mb-4">
+            <button type="button" class="btn btn-sm" onclick="testNotification({{ shop.id }}, 'dingtalk')">📤 测试钉钉通知</button>
+        </div>
+        {% endif %}
+        <div class="form-group">
+            <label>企业微信 Webhook 地址</label>
+            <input type="text" name="wecom_webhook" class="form-control" value="{{ shop.wecom_webhook or '' if shop else '' }}" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx">
+        </div>
+        {% if shop %}
+        <div class="mb-4">
+            <button type="button" class="btn btn-sm" onclick="testNotification({{ shop.id }}, 'wecom')">📤 测试企业微信通知</button>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label>备注</label>
+            <textarea name="remark" class="form-control" rows="3">{{ shop.remark or '' if shop else '' }}</textarea>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('shop.shop_list') }}" class="btn">取消</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

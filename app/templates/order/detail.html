@@ -1,0 +1,132 @@
+{% extends "layouts/base.html" %}
+{% block title %}订单详情{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="flex justify-between items-center mb-4">
+        <div class="card-title">📄 订单详情</div>
+        <a href="{{ url_for('order.order_list') }}" class="btn">← 返回列表</a>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>我方订单号</label>
+            <div>{{ order.order_no }}</div>
+        </div>
+        <div class="form-group">
+            <label>京东订单号</label>
+            <div>{{ order.jd_order_no }}</div>
+        </div>
+        <div class="form-group">
+            <label>订单状态</label>
+            <div>
+                {% if order.order_status == 0 %}
+                <span class="badge badge-default">待支付</span>
+                {% elif order.order_status == 1 %}
+                <span class="badge badge-warning">处理中</span>
+                {% elif order.order_status == 2 %}
+                <span class="badge badge-success">已完成</span>
+                {% elif order.order_status == 3 %}
+                <span class="badge badge-danger">已取消</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>店铺</label>
+            <div>{{ order.shop.shop_name if order.shop else '-' }}</div>
+        </div>
+        <div class="form-group">
+            <label>店铺类型</label>
+            <div>{{ order.shop_type_label }}</div>
+        </div>
+        <div class="form-group">
+            <label>订单类型</label>
+            <div>{{ order.order_type_label }}</div>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>商品SKU</label>
+            <div>{{ order.sku_id or '-' }}</div>
+        </div>
+        <div class="form-group">
+            <label>商品信息</label>
+            <div>{{ order.product_info or '-' }}</div>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>金额</label>
+            <div>¥{{ order.amount_yuan }}</div>
+        </div>
+        <div class="form-group">
+            <label>数量</label>
+            <div>{{ order.quantity }}</div>
+        </div>
+        <div class="form-group">
+            <label>充值账号</label>
+            <div>{{ order.produce_account or '-' }}</div>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>创建时间</label>
+            <div>{{ order.create_time.strftime('%Y-%m-%d %H:%M:%S') if order.create_time else '-' }}</div>
+        </div>
+        <div class="form-group">
+            <label>支付时间</label>
+            <div>{{ order.pay_time.strftime('%Y-%m-%d %H:%M:%S') if order.pay_time else '-' }}</div>
+        </div>
+        <div class="form-group">
+            <label>发货时间</label>
+            <div>{{ order.deliver_time.strftime('%Y-%m-%d %H:%M:%S') if order.deliver_time else '-' }}</div>
+        </div>
+    </div>
+
+    {% if order.order_type == 2 and order.card_info_parsed %}
+    <div class="section-title">🔑 卡密信息</div>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>#</th><th>卡号</th><th>密码</th></tr></thead>
+            <tbody>
+                {% for card in order.card_info_parsed %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ card.cardNo }}</td>
+                    <td>{{ card.cardPwd }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>回调状态</label>
+            <div>
+                {% if order.notify_status == 0 %}未回调
+                {% elif order.notify_status == 1 %}✅ 成功
+                {% else %}❌ 失败{% endif %}
+            </div>
+        </div>
+        <div class="form-group">
+            <label>通知状态</label>
+            <div>{{ '已通知' if order.notified == 1 else '未通知' }}</div>
+        </div>
+    </div>
+
+    {% if order.remark %}
+    <div class="form-group">
+        <label>备注</label>
+        <div>{{ order.remark }}</div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
