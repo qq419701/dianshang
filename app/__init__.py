@@ -61,6 +61,14 @@ def create_app():
     from app.routes.merchant import merchant_bp
     app.register_blueprint(merchant_bp, url_prefix="/merchant")
     
+    # 注册蓝图 — 店铺管理
+    from app.routes.shop import shop_bp
+    app.register_blueprint(shop_bp, url_prefix="/shop")
+    
+    # 注册蓝图 — 统计报表
+    from app.routes.statistics import statistics_bp
+    app.register_blueprint(statistics_bp, url_prefix="/statistics")
+    
     # 注册蓝图 — 通知管理
     from app.routes.notification import notification_bp
     app.register_blueprint(notification_bp, url_prefix="/notification")
@@ -73,7 +81,7 @@ def create_app():
     with app.app_context():
         from app.models import (
             merchant_config, order, callback_log,
-            merchant, user, notification, operation_log
+            merchant, user, notification, operation_log, shop
         )  # noqa: F401
         db.create_all()
     

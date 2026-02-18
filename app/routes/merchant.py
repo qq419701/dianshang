@@ -31,7 +31,15 @@ def merchant_list():
     per_page = request.args.get("per_page", 20, type=int)
     search = request.args.get("search", "")
     
-    query = Merchant.query
+    # 获取当前用户
+    from app.services.auth_service import get_current_user
+    user = get_current_user()
+    
+    # 操作员只能查看自己的商户
+    if user.merchant_id:
+        query = Merchant.query.filter_by(id=user.merchant_id)
+    else:
+        query = Merchant.query
     
     # 搜索条件
     if search:
@@ -47,11 +55,42 @@ def merchant_list():
         page=page, per_page=per_page, error_out=False
     )
     
+    # 为每个商户添加店铺数量
+    merchants_with_stats = []
+    for merchant in pagination.items:
+        merchant_dict = {
+            'merchant': merchant,
+            'shop_count': merchant.shops.count() if hasattr(merchant, 'shops') else 0
+        }
+        merchants_with_stats.append(merchant_dict)
+    
     return render_template(
         "merchant/list.html",
-        merchants=pagination.items,
+        merchants=merchants_with_stats,
         pagination=pagination,
         search=search
+    )
+
+
+@merchant_bp.route("/detail/<int:merchant_id>")
+@login_required
+@permission_required("merchant:view")
+def merchant_detail(merchant_id):
+    """
+    商户详情页（包含店铺管理）
+    """
+    from app.services.auth_service import get_current_user
+    user = get_current_user()
+    
+    # 权限检查：操作员只能查看自己的商户
+    if user.merchant_id and user.merchant_id != merchant_id:
+        return "权限不足", 403
+    
+    merchant = Merchant.query.get_or_404(merchant_id)
+    
+    return render_template(
+        "merchant/detail.html",
+        merchant=merchant
     )
 
 
