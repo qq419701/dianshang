@@ -38,6 +38,12 @@ class Shop(db.Model):
     jd_direct_callback_url = db.Column(db.String(500), comment="京东直充回调地址")
     jd_card_callback_url = db.Column(db.String(500), comment="京东卡密回调地址")
 
+    # 订单通知配置
+    notify_enabled = db.Column(db.SmallInteger, default=0, comment="是否启用订单通知：0=否 1=是")
+    dingtalk_webhook = db.Column(db.String(500), comment="钉钉机器人Webhook地址")
+    dingtalk_secret = db.Column(db.String(500), comment="钉钉机器人加签密钥")
+    wecom_webhook = db.Column(db.String(500), comment="企业微信机器人Webhook地址")
+
     is_enabled = db.Column(db.SmallInteger, default=1, comment="启用状态：0=禁用, 1=启用")
     remark = db.Column(db.Text, comment="备注")
     create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
