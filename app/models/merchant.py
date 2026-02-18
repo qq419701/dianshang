@@ -8,7 +8,7 @@
 """
 
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Merchant(db.Model):
@@ -26,9 +26,9 @@ class Merchant(db.Model):
     contact_email = db.Column(db.String(128), comment="联系人邮箱")
     status = db.Column(db.SmallInteger, default=1, comment="状态：0=禁用, 1=启用")
     remark = db.Column(db.Text, comment="备注")
-    create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
     update_time = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间"
+        db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), comment="更新时间"
     )
 
     # 关联关系

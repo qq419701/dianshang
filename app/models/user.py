@@ -8,7 +8,7 @@
 """
 
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 
@@ -26,7 +26,7 @@ class Role(db.Model):
     description = db.Column(db.String(255), comment="角色描述")
     permissions = db.Column(db.Text, comment="权限列表（JSON格式）")
     status = db.Column(db.SmallInteger, default=1, comment="状态：0=禁用, 1=启用")
-    create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
 
     # 关联的用户
     users = db.relationship("User", back_populates="role", lazy="dynamic")
@@ -82,9 +82,9 @@ class User(db.Model):
     status = db.Column(db.SmallInteger, default=1, comment="状态：0=禁用, 1=启用")
     last_login_time = db.Column(db.DateTime, comment="最后登录时间")
     last_login_ip = db.Column(db.String(64), comment="最后登录IP")
-    create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
     update_time = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间"
+        db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), comment="更新时间"
     )
 
     # 关联关系

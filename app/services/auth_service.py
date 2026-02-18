@@ -7,7 +7,7 @@
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import session, request
 from app import db
 from app.models.user import User
@@ -46,7 +46,7 @@ def login_user(username, password, remember=False):
             return False, "用户名或密码错误", None
         
         # 更新登录信息
-        user.last_login_time = datetime.utcnow()
+        user.last_login_time = datetime.now(timezone.utc)
         user.last_login_ip = get_client_ip()
         
         # 设置Session

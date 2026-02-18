@@ -8,7 +8,7 @@
 """
 
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class OperationLog(db.Model):
@@ -31,7 +31,7 @@ class OperationLog(db.Model):
     response_data = db.Column(db.Text, comment="响应数据")
     status = db.Column(db.SmallInteger, comment="状态：0=失败, 1=成功")
     error_message = db.Column(db.Text, comment="错误信息")
-    create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
 
     # 关联关系
     user = db.relationship("User", back_populates="operation_logs")

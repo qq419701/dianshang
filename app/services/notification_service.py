@@ -11,7 +11,7 @@ import smtplib
 import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+from datetime import datetime, timezone
 from app import db
 from app.models.notification import Notification, NotificationConfig, NotificationLog
 from app.models.user import User
@@ -198,7 +198,7 @@ def send_webhook(merchant_id, scene, webhook_url, title, content, related_type="
             "scene": scene,
             "title": title,
             "content": content,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
         
         if related_type:
@@ -347,5 +347,5 @@ def get_unread_count(user_id):
             is_read=0
         ).count()
         return count
-    except:
+    except Exception:
         return 0

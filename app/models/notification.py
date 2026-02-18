@@ -8,7 +8,7 @@
 """
 
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class Notification(db.Model):
@@ -27,7 +27,7 @@ class Notification(db.Model):
     related_id = db.Column(db.BigInteger, comment="关联ID")
     is_read = db.Column(db.SmallInteger, default=0, comment="已读状态：0=未读, 1=已读")
     read_time = db.Column(db.DateTime, comment="阅读时间")
-    create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
 
     # 关联关系
     user = db.relationship("User", back_populates="notifications")
@@ -39,7 +39,7 @@ class Notification(db.Model):
     def mark_as_read(self):
         """标记为已读"""
         self.is_read = 1
-        self.read_time = datetime.utcnow()
+        self.read_time = datetime.now(timezone.utc)
 
     def __repr__(self):
         return f"<Notification {self.title} user_id={self.user_id}>"
@@ -60,9 +60,9 @@ class NotificationConfig(db.Model):
     enable_webhook = db.Column(db.SmallInteger, default=0, comment="启用Webhook：0=禁用, 1=启用")
     webhook_url = db.Column(db.String(512), comment="Webhook地址")
     enable_site_msg = db.Column(db.SmallInteger, default=1, comment="启用站内信：0=禁用, 1=启用")
-    create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
     update_time = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间"
+        db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), comment="更新时间"
     )
 
     # 关联关系
@@ -93,7 +93,7 @@ class NotificationLog(db.Model):
     content = db.Column(db.Text, comment="内容")
     status = db.Column(db.SmallInteger, comment="状态：0=失败, 1=成功")
     error_message = db.Column(db.Text, comment="错误信息")
-    create_time = db.Column(db.DateTime, default=datetime.utcnow, comment="创建时间")
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
 
     __table_args__ = (
         {"comment": "通知日志表"},

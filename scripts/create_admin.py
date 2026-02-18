@@ -4,7 +4,8 @@
 ==============================================
   创建管理员账号脚本
   功能：创建初始超级管理员账号
-  使用方式：python3 scripts/create_admin.py
+  使用方式：python3 scripts/create_admin.py [password]
+  如果不提供密码参数，将使用默认密码：admin123
 ==============================================
 """
 
@@ -19,8 +20,12 @@ from app.models.user import User, Role
 from app.models.merchant import Merchant
 
 
-def create_admin():
-    """创建管理员账号"""
+def create_admin(password=None):
+    """创建管理员账号
+    
+    参数：
+        password: 管理员密码，如果为None则使用默认密码admin123
+    """
     app = create_app()
     
     with app.app_context():
@@ -42,6 +47,11 @@ def create_admin():
             print("❌ 错误：默认商户不存在，请先执行数据库迁移脚本")
             return
         
+        # 使用提供的密码或默认密码
+        if password is None:
+            password = 'admin123'
+            print("⚠️  未提供密码，使用默认密码：admin123")
+        
         # 创建管理员账号
         admin = User(
             username='admin',
@@ -52,8 +62,8 @@ def create_admin():
             status=1
         )
         
-        # 设置默认密码：admin123
-        admin.set_password('admin123')
+        # 设置密码
+        admin.set_password(password)
         
         try:
             db.session.add(admin)
@@ -62,10 +72,11 @@ def create_admin():
             print("✅ 管理员账号创建成功！")
             print("=" * 50)
             print(f"用户名：admin")
-            print(f"密码：admin123")
+            print(f"密码：{'admin123' if password == 'admin123' else '***（已设置）'}")
             print(f"角色：{super_admin_role.name}")
             print("=" * 50)
-            print("⚠️  重要提示：首次登录后请立即修改密码！")
+            if password == 'admin123':
+                print("⚠️  重要提示：使用的是默认密码，首次登录后请立即修改！")
             
         except Exception as e:
             db.session.rollback()
@@ -73,4 +84,6 @@ def create_admin():
 
 
 if __name__ == '__main__':
-    create_admin()
+    # 从命令行参数获取密码
+    password = sys.argv[1] if len(sys.argv) > 1 else None
+    create_admin(password)
