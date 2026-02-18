@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}订单管理系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <nav class="navbar">
+        <div class="navbar-brand">📦 订单管理系统</div>
+        <div class="navbar-menu">
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('shop.shop_list') }}" class="nav-link">🏪 店铺管理</a>
+            {% endif %}
+            <a href="{{ url_for('order.order_list') }}" class="nav-link">📦 订单管理</a>
+            {% if current_user.is_admin %}
+            <a href="{{ url_for('statistics.index') }}" class="nav-link">📊 统计报表</a>
+            <a href="{{ url_for('user.user_list') }}" class="nav-link">👥 用户管理</a>
+            <a href="{{ url_for('notification.log_list') }}" class="nav-link">🔔 通知日志</a>
+            {% endif %}
+        </div>
+        <div class="navbar-user">
+            <span>{{ current_user.name or current_user.username }}</span>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-sm">退出</a>
+        </div>
+    </nav>
+    {% endif %}
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

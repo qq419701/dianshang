@@ -1,0 +1,78 @@
+{% extends "layouts/base.html" %}
+{% block title %}统计报表{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-title">📊 统计报表</div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_orders }}</div>
+            <div class="stat-label">总订单数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">¥{{ '%.2f' % total_amount }}</div>
+            <div class="stat-label">总金额</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ completed_orders }}</div>
+            <div class="stat-label">已完成</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ pending_orders }}</div>
+            <div class="stat-label">待处理</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">🏪 店铺统计</div>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>店铺名称</th>
+                    <th>订单数</th>
+                    <th>总金额</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in shop_stats %}
+                <tr>
+                    <td>{{ stat.shop_name }}</td>
+                    <td>{{ stat.order_count }}</td>
+                    <td>¥{{ '%.2f' % (stat.total_amount / 100) }}</td>
+                </tr>
+                {% endfor %}
+                {% if not shop_stats %}
+                <tr><td colspan="3" class="text-center">暂无数据</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-title">📈 近7天订单趋势</div>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>订单数</th>
+                    <th>金额</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for day in daily_stats %}
+                <tr>
+                    <td>{{ day.date }}</td>
+                    <td>{{ day.count }}</td>
+                    <td>¥{{ '%.2f' % day.amount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
