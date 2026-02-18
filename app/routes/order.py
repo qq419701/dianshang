@@ -22,6 +22,10 @@ from app.services.agiso import agiso_auto_deliver
 
 order_bp = Blueprint('order', __name__)
 
+# 回调状态常量：0=未回调 1=成功 2=失败
+NOTIFY_STATUS_SUCCESS = 1
+NOTIFY_STATUS_FAILED = 2
+
 
 @order_bp.route('/')
 @login_required
@@ -122,7 +126,7 @@ def notify_success(order_id):
 
     order.order_status = 2
     order.deliver_time = datetime.utcnow()
-    order.notify_status = 1 if callback_ok else 2
+    order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
     order.notify_time = datetime.utcnow()
     db.session.commit()
 
@@ -157,7 +161,7 @@ def notify_refund(order_id):
             callback_ok, callback_msg = callback_general_refund(shop, order)
 
     order.order_status = 3
-    order.notify_status = 1 if callback_ok else 2
+    order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
     order.notify_time = datetime.utcnow()
     db.session.commit()
 
@@ -201,7 +205,7 @@ def deliver_card(order_id):
 
     order.order_status = 2
     order.deliver_time = datetime.utcnow()
-    order.notify_status = 1 if callback_ok else 2
+    order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
     order.notify_time = datetime.utcnow()
     db.session.commit()
 
@@ -282,7 +286,7 @@ def agiso_deliver(order_id):
             elif shop.shop_type == 2:
                 callback_ok, _ = callback_general_card_deliver(shop, order, cards)
 
-        order.notify_status = 1 if callback_ok else 2
+        order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
         order.notify_time = datetime.utcnow()
         db.session.commit()
 
