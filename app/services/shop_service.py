@@ -151,15 +151,17 @@ def update_shop(shop_id, **updates):
         if 'remark' in updates:
             shop.remark = updates['remark']
 
-        # 更新配置信息
+        # 业务类型相关配置
         if shop.biz_type == 1:
             if 'vendor_id' in updates:
-                shop.vendor_id = updates['vendor_id']
+                vendor_id_val = updates['vendor_id']
+                shop.vendor_id = int(vendor_id_val) if vendor_id_val and vendor_id_val != '' else None
             if 'jd_callback_url' in updates:
                 shop.jd_callback_url = updates['jd_callback_url']
         elif shop.biz_type == 2:
             if 'customer_id' in updates:
-                shop.customer_id = updates['customer_id']
+                customer_id_val = updates['customer_id']
+                shop.customer_id = int(customer_id_val) if customer_id_val and customer_id_val != '' else None
             if 'jd_direct_callback_url' in updates:
                 shop.jd_direct_callback_url = updates['jd_direct_callback_url']
             if 'jd_card_callback_url' in updates:

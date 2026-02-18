@@ -1,7 +1,7 @@
 -- ==============================================
 --  店铺管理系统数据库变更脚本
 --  功能：新增店铺表、修改订单表、完善通知配置表
---  使用方式：mysql -u root -p dianshang < add_shop_system.sql
+--  使用方式：mysql -u root -p dianshang < migrations/add_shop_system.sql
 -- ==============================================
 
 USE `dianshang`;

@@ -204,12 +204,14 @@ def update_shop(shop_id):
         # 业务类型相关配置
         if shop.biz_type == 1:
             if 'vendor_id' in data:
-                updates['vendor_id'] = int(data['vendor_id']) if data['vendor_id'] else None
+                vendor_id_val = data['vendor_id']
+                updates['vendor_id'] = int(vendor_id_val) if vendor_id_val and str(vendor_id_val).strip() != '' else None
             if 'jd_callback_url' in data:
                 updates['jd_callback_url'] = data['jd_callback_url'].strip()
         elif shop.biz_type == 2:
             if 'customer_id' in data:
-                updates['customer_id'] = int(data['customer_id']) if data['customer_id'] else None
+                customer_id_val = data['customer_id']
+                updates['customer_id'] = int(customer_id_val) if customer_id_val and str(customer_id_val).strip() != '' else None
             if 'jd_direct_callback_url' in data:
                 updates['jd_direct_callback_url'] = data['jd_direct_callback_url'].strip()
             if 'jd_card_callback_url' in data:

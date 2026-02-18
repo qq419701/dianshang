@@ -105,7 +105,7 @@ def update_orphan_orders():
     
     # 查找没有shop_id的订单
     orphan_orders = Order.query.filter(
-        db.or_(Order.shop_id == None, Order.shop_id == 0)
+        db.or_(Order.shop_id.is_(None), Order.shop_id == 0)
     ).all()
     
     updated_count = 0

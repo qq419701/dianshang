@@ -71,7 +71,7 @@ def merchant_statistics(merchant_id):
         )
         
         if stats:
-            # 转换金额单位为元
+            # 金额已经是分为单位，转换为元
             stats['total_amount'] = stats['total_amount'] / 100
             stats['success_amount'] = stats['success_amount'] / 100
             return jsonify({'success': True, 'data': stats})
@@ -113,7 +113,7 @@ def shops_statistics(merchant_id):
             end_date=end_date
         )
         
-        # 转换金额单位
+        # 金额已经是分为单位，转换为元
         for stat in shops_stats:
             stat['total_amount'] = stat['total_amount'] / 100
             stat['success_amount'] = stat['success_amount'] / 100
@@ -155,7 +155,7 @@ def biz_type_statistics(merchant_id):
             end_date=end_date
         )
         
-        # 转换金额单位
+        # 金额已经是分为单位，转换为元
         for biz_name in stats:
             stats[biz_name]['total_amount'] = stats[biz_name]['total_amount'] / 100
         

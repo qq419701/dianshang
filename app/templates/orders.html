@@ -150,15 +150,30 @@ function loadShops(merchantId) {
 // 页面加载时如果已选择商户，则加载店铺列表
 window.addEventListener('DOMContentLoaded', function() {
     const merchantId = document.getElementById('merchantSelect').value;
+    const shopId = {{ shop_id }};
+    
     if (merchantId && merchantId != '0') {
-        loadShops(merchantId);
-        // 恢复之前选择的店铺
-        setTimeout(() => {
-            const shopId = {{ shop_id }};
-            if (shopId) {
-                document.getElementById('shopSelect').value = shopId;
-            }
-        }, 500);
+        fetch('/shop/list/' + merchantId)
+            .then(res => res.json())
+            .then(data => {
+                const shopSelect = document.getElementById('shopSelect');
+                shopSelect.innerHTML = '<option value="0">全部店铺</option>';
+                
+                if (data.success) {
+                    data.data.forEach(shop => {
+                        const option = document.createElement('option');
+                        option.value = shop.id;
+                        option.textContent = shop.shop_name;
+                        shopSelect.appendChild(option);
+                    });
+                    
+                    // 恢复之前选择的店铺
+                    if (shopId) {
+                        shopSelect.value = shopId;
+                    }
+                }
+            })
+            .catch(err => console.error('加载店铺失败', err));
     }
 });
 </script>

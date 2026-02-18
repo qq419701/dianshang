@@ -246,7 +246,7 @@ def generate_chart_data(merchant_id, start_date=None, end_date=None):
     try:
         shops_stats = get_merchant_shops_statistics(merchant_id, start_date, end_date)
         
-        # 店铺流水对比
+        # 店铺流水对比 (金额已经在查询层面是以分为单位，这里转换为元)
         shop_names = [stat['shop_name'] for stat in shops_stats]
         shop_orders = [stat['total_orders'] for stat in shops_stats]
         shop_amounts = [stat['total_amount'] / 100 for stat in shops_stats]  # 转换为元
