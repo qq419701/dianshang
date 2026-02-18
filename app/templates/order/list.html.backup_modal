@@ -63,7 +63,7 @@
                     {% for order in orders %}
                     <tr>
                         <td>
-                            <a href="javascript:void(0)" onclick="showOrderDetail({{ order.id }})" title="{{ order.order_no }}">
+                            <a href="{{ url_for('order.order_detail', order_id=order.id) }}" title="{{ order.order_no }}">
                                 {{ order.jd_order_no }}
                             </a>
                         </td>
@@ -112,7 +112,7 @@
                         <td>{{ order.create_time.strftime('%Y-%m-%d %H:%M') }}</td>
                         <td>
                             <div class="action-buttons">
-                                <a href="javascript:void(0)" onclick="showOrderDetail({{ order.id }})" class="btn btn-sm btn-detail">📄 详情</a>
+                                <a href="{{ url_for('order.order_detail', order_id=order.id) }}" class="btn btn-sm btn-detail">📄 详情</a>
                                 <div class="dropdown">
                                     <button class="btn btn-sm btn-success dropdown-toggle">通知成功 ▼</button>
                                     <div class="dropdown-menu">
@@ -171,22 +171,6 @@
     {% endif %}
 </div>
 
-<!-- 订单详情弹窗 -->
-<div id="orderModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>📄 订单详情</h3>
-            <span class="modal-close" onclick="closeOrderModal()">&times;</span>
-        </div>
-        <div class="modal-body" id="orderDetailContent">
-            <div style="text-align: center; padding: 40px;">
-                <div class="loading-spinner"></div>
-                <p>加载中...</p>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
 .badge {
     padding: 4px 8px;
@@ -195,29 +179,71 @@
     font-weight: 500;
     display: inline-block;
 }
-.badge-warning { background: #faad14; color: white; }
-.badge-info { background: #1890ff; color: white; }
-.badge-success { background: #52c41a; color: white; }
-.badge-secondary { background: #8c8c8c; color: white; }
-.badge-danger { background: #ff4d4f; color: white; }
-.badge-error { background: #fa541c; color: white; }
-
-.table-responsive { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td {
+.badge-warning {
+    background: #faad14;
+    color: white;
+}
+.badge-info {
+    background: #1890ff;
+    color: white;
+}
+.badge-success {
+    background: #52c41a;
+    color: white;
+}
+.badge-secondary {
+    background: #8c8c8c;
+    color: white;
+}
+.badge-danger {
+    background: #ff4d4f;
+    color: white;
+}
+.badge-error {
+    background: #fa541c;
+    color: white;
+}
+.table-responsive {
+    overflow-x: auto;
+}
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th,
+.table td {
     padding: 12px;
     border-bottom: 1px solid #f0f0f0;
     text-align: left;
     white-space: nowrap;
 }
-.table th { background: #fafafa; font-weight: 600; }
-.table tbody tr:hover { background: #f5f5f5; }
+.table th {
+    background: #fafafa;
+    font-weight: 600;
+}
+.table tbody tr:hover {
+    background: #f5f5f5;
+}
 
-.action-buttons { display: flex; gap: 5px; align-items: center; }
-.btn-detail { background: #1890ff; color: white; }
-.btn-detail:hover { background: #096dd9; }
+/* 操作按钮样式 */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+.btn-detail {
+    background: #1890ff;
+    color: white;
+}
+.btn-detail:hover {
+    background: #096dd9;
+}
 
-.dropdown { position: relative; display: inline-block; }
+/* 下拉菜单样式 */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
 .dropdown-toggle {
     background: #52c41a;
     color: white;
@@ -227,7 +253,9 @@
     border-radius: 4px;
     font-size: 13px;
 }
-.dropdown-toggle:hover { background: #389e0d; }
+.dropdown-toggle:hover {
+    background: #389e0d;
+}
 .dropdown-menu {
     display: none;
     position: absolute;
@@ -239,7 +267,9 @@
     z-index: 1000;
     padding: 4px 0;
 }
-.dropdown:hover .dropdown-menu { display: block; }
+.dropdown:hover .dropdown-menu {
+    display: block;
+}
 .dropdown-menu a {
     display: block;
     padding: 8px 16px;
@@ -247,11 +277,23 @@
     text-decoration: none;
     font-size: 13px;
 }
-.dropdown-menu a:hover { background: #f5f5f5; }
-.dropdown-divider { height: 1px; background: #e8e8e8; margin: 4px 0; }
+.dropdown-menu a:hover {
+    background: #f5f5f5;
+}
+.dropdown-divider {
+    height: 1px;
+    background: #e8e8e8;
+    margin: 4px 0;
+}
 
-.dropdown-submenu { position: relative; }
-.dropdown-submenu > a::after { content: ' ▶'; float: right; }
+/* 子菜单样式 */
+.dropdown-submenu {
+    position: relative;
+}
+.dropdown-submenu > a::after {
+    content: ' ▶';
+    float: right;
+}
 .dropdown-submenu-content {
     display: none;
     position: absolute;
@@ -263,7 +305,9 @@
     border-radius: 4px;
     padding: 4px 0;
 }
-.dropdown-submenu:hover .dropdown-submenu-content { display: block; }
+.dropdown-submenu:hover .dropdown-submenu-content {
+    display: block;
+}
 
 .pagination {
     display: flex;
@@ -278,111 +322,17 @@
     text-decoration: none;
     color: #333;
 }
-.page-link:hover { background: #f0f0f0; }
+.page-link:hover {
+    background: #f0f0f0;
+}
 .page-link.active {
     background: #1890ff;
     color: white;
     border-color: #1890ff;
 }
-
-/* 弹窗样式 */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 9999;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-}
-.modal-content {
-    position: relative;
-    background: white;
-    margin: 50px auto;
-    width: 90%;
-    max-width: 1200px;
-    max-height: 85vh;
-    border-radius: 8px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px;
-    border-bottom: 1px solid #e8e8e8;
-    background: #fafafa;
-}
-.modal-header h3 {
-    margin: 0;
-    font-size: 18px;
-}
-.modal-close {
-    font-size: 28px;
-    font-weight: bold;
-    color: #999;
-    cursor: pointer;
-    line-height: 1;
-}
-.modal-close:hover { color: #333; }
-.modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-}
-
-.loading-spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid #1890ff;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
 </style>
 
 <script>
-// 显示订单详情弹窗
-function showOrderDetail(orderId) {
-    const modal = document.getElementById('orderModal');
-    const content = document.getElementById('orderDetailContent');
-    
-    // 显示弹窗和加载状态
-    modal.style.display = 'block';
-    content.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p>加载中...</p></div>';
-    
-    // 加载订单详情
-    fetch(`/order/${orderId}/detail-html`)
-        .then(res => res.text())
-        .then(html => {
-            content.innerHTML = html;
-        })
-        .catch(err => {
-            content.innerHTML = '<div style="text-align: center; padding: 40px; color: #ff4d4f;">❌ 加载失败</div>';
-        });
-}
-
-// 关闭弹窗
-function closeOrderModal() {
-    document.getElementById('orderModal').style.display = 'none';
-}
-
-// 点击弹窗外部关闭
-window.onclick = function(event) {
-    const modal = document.getElementById('orderModal');
-    if (event.target == modal) {
-        closeOrderModal();
-    }
-}
-
 function notifySuccess(orderId) {
     if (confirm('确认通知京东该订单充值成功？')) {
         fetch(`/order/${orderId}/notify-success`, {
@@ -454,7 +404,7 @@ function debugProcessing(orderId) {
             alert(data.success ? '✅ ' + data.message : '❌ ' + data.message);
             if (data.success) location.reload();
         })
-        .catch(err => alert('❌ 操作���败'));
+        .catch(err => alert('❌ 操作失败'));
     }
 }
 
@@ -470,7 +420,6 @@ function debugFailed(orderId) {
             if (data.success) location.reload();
         })
         .catch(err => alert('❌ 操作失败'));
-        });
     }
 }
 </script>

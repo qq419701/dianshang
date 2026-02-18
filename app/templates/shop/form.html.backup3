@@ -245,16 +245,16 @@ function showToast(message) {
         <div class="form-row">
             <div class="form-group">
                 <label>直充回调地址 <small class="text-muted">(京东提供，选填)</small></label>
-                <input type="text" name="game_direct_callback_url" class="form-control" value="{{ shop.game_direct_callback_url or 'https://jd-game.example.com/callback/direct' if shop else 'https://jd-game.example.com/callback/direct' }}" placeholder="默认: https://jd-game.example.com/callback/direct">
+                <input type="text" name="game_direct_callback_url" class="form-control" value="{{ shop.game_direct_callback_url or '' if shop else '' }}" placeholder="https://jd-game.example.com/callback/direct">
             </div>
             <div class="form-group">
                 <label>卡密回调地址 <small class="text-muted">(京东提供，选填)</small></label>
-                <input type="text" name="game_card_callback_url" class="form-control" value="{{ shop.game_card_callback_url or 'https://jd-game.example.com/callback/card' if shop else 'https://jd-game.example.com/callback/card' }}" placeholder="默认: https://jd-game.example.com/callback/card">
+                <input type="text" name="game_card_callback_url" class="form-control" value="{{ shop.game_card_callback_url or '' if shop else '' }}" placeholder="https://jd-game.example.com/callback/card">
             </div>
         </div>
         <div class="form-group">
             <label>接口地址 <small class="text-muted">(选填)</small></label>
-            <input type="text" name="game_api_url" class="form-control" value="{{ shop.game_api_url or 'https://api.jd-game.com/v1' if shop else 'https://api.jd-game.com/v1' }}" placeholder="默认: https://api.jd-game.com/v1">
+            <input type="text" name="game_api_url" class="form-control" value="{{ shop.game_api_url or '' if shop else '' }}" placeholder="https://api.jd-game.com/v1">
         </div>
 
         <div class="section-title">🏪 通用交易配置 <small class="text-muted">(客户申请下来后填写)</small></div>
@@ -275,12 +275,12 @@ function showToast(message) {
             </div>
             <div class="form-group">
                 <label>回调地址 <small class="text-muted">(京东提供，选填)</small></label>
-                <input type="text" name="general_callback_url" class="form-control" value="{{ shop.general_callback_url or 'https://jd-general.example.com/callback' if shop else 'https://jd-general.example.com/callback' }}" placeholder="默认: https://jd-general.example.com/callback">
+                <input type="text" name="general_callback_url" class="form-control" value="{{ shop.general_callback_url or '' if shop else '' }}" placeholder="https://jd-general.example.com/callback">
             </div>
         </div>
         <div class="form-group">
             <label>接口地址 <small class="text-muted">(选填)</small></label>
-            <input type="text" name="general_api_url" class="form-control" value="{{ shop.general_api_url or 'https://api.jd-general.com/v1' if shop else 'https://api.jd-general.com/v1' }}" placeholder="默认: https://api.jd-general.com/v1">
+            <input type="text" name="general_api_url" class="form-control" value="{{ shop.general_api_url or '' if shop else '' }}" placeholder="https://api.jd-general.com/v1">
         </div>
 
         <div class="section-title">🔌 阿奇索配置</div>

@@ -1,0 +1,220 @@
+{% extends "layouts/base.html" %}
+{% block title %}订单管理{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-title">
+        📦 订单管理
+        <div style="float: right;">
+            <span class="badge">总计: {{ pagination.total }} 个订单</span>
+        </div>
+    </div>
+
+    <!-- 搜索和筛选 -->
+    <form method="GET" class="mb-4">
+        <div class="form-row">
+            <div class="form-group">
+                <input type="text" name="keyword" class="form-control" placeholder="订单号/京东订单号/商品" value="{{ request.args.get('keyword', '') }}">
+            </div>
+            <div class="form-group">
+                <select name="order_status" class="form-control">
+                    <option value="">全部状态</option>
+                    <option value="0" {{ 'selected' if request.args.get('order_status') == '0' }}>待处理</option>
+                    <option value="1" {{ 'selected' if request.args.get('order_status') == '1' }}>处理中</option>
+                    <option value="2" {{ 'selected' if request.args.get('order_status') == '2' }}>已完成</option>
+                    <option value="3" {{ 'selected' if request.args.get('order_status') == '3' }}>已取消</option>
+                    <option value="4" {{ 'selected' if request.args.get('order_status') == '4' }}>已退款</option>
+                    <option value="5" {{ 'selected' if request.args.get('order_status') == '5' }}>异常</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <select name="shop_id" class="form-control">
+                    <option value="">全部店铺</option>
+                    {% for shop in shops %}
+                    <option value="{{ shop.id }}" {{ 'selected' if request.args.get('shop_id') == shop.id|string }}>{{ shop.shop_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">🔍 搜索</button>
+                <a href="{{ url_for('order.order_list') }}" class="btn">重置</a>
+            </div>
+        </div>
+    </form>
+
+    <!-- 订单列表 -->
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>订单号</th>
+                    <th>京东订单号</th>
+                    <th>店铺</th>
+                    <th>类型</th>
+                    <th>状态</th>
+                    <th>商品信息</th>
+                    <th>金额</th>
+                    <th>数量</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if orders %}
+                    {% for order in orders %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('order.order_detail', order_id=order.id) }}">{{ order.order_no }}</a>
+                        </td>
+                        <td>{{ order.jd_order_no }}</td>
+                        <td>
+                            {% if order.shop %}
+                                {{ order.shop.shop_name }}
+                            {% else %}
+                                <span class="text-muted">未知店铺</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.shop_type == 1 %}
+                                <span class="badge badge-info">游戏点卡</span>
+                            {% else %}
+                                <span class="badge badge-success">通用交易</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.order_status == 0 %}
+                                <span class="badge badge-warning">⏳ 待处理</span>
+                            {% elif order.order_status == 1 %}
+                                <span class="badge badge-info">🔄 处理中</span>
+                            {% elif order.order_status == 2 %}
+                                <span class="badge badge-success">✅ 已完成</span>
+                            {% elif order.order_status == 3 %}
+                                <span class="badge badge-secondary">❌ 已取消</span>
+                            {% elif order.order_status == 4 %}
+                                <span class="badge badge-danger">💰 已退款</span>
+                            {% elif order.order_status == 5 %}
+                                <span class="badge badge-error">⚠️ 异常</span>
+                            {% else %}
+                                <span class="badge">未知({{ order.order_status }})</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ order.product_info or '-' }}
+                        </td>
+                        <td>¥{{ '%.2f'|format(order.amount / 100) }}</td>
+                        <td>{{ order.quantity }}</td>
+                        <td>{{ order.create_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <a href="{{ url_for('order.order_detail', order_id=order.id) }}" class="btn btn-sm">查看</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted">暂无订单数据</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 分页 -->
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('order.order_list', page=pagination.prev_num, **request.args) }}" class="page-link">上一页</a>
+        {% endif %}
+
+        {% for page in pagination.iter_pages() %}
+            {% if page %}
+                {% if page == pagination.page %}
+                    <span class="page-link active">{{ page }}</span>
+                {% else %}
+                    <a href="{{ url_for('order.order_list', page=page, **request.args) }}" class="page-link">{{ page }}</a>
+                {% endif %}
+            {% else %}
+                <span class="page-link">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+            <a href="{{ url_for('order.order_list', page=pagination.next_num, **request.args) }}" class="page-link">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.badge {
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.badge-warning {
+    background: #faad14;
+    color: white;
+}
+.badge-info {
+    background: #1890ff;
+    color: white;
+}
+.badge-success {
+    background: #52c41a;
+    color: white;
+}
+.badge-secondary {
+    background: #8c8c8c;
+    color: white;
+}
+.badge-danger {
+    background: #ff4d4f;
+    color: white;
+}
+.badge-error {
+    background: #fa541c;
+    color: white;
+}
+.table-responsive {
+    overflow-x: auto;
+}
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th,
+.table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: left;
+}
+.table th {
+    background: #fafafa;
+    font-weight: 600;
+}
+.table tbody tr:hover {
+    background: #f5f5f5;
+}
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    margin-top: 20px;
+}
+.page-link {
+    padding: 8px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+}
+.page-link:hover {
+    background: #f0f0f0;
+}
+.page-link.active {
+    background: #1890ff;
+    color: white;
+    border-color: #1890ff;
+}
+</style>
+{% endblock %}

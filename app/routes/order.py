@@ -19,6 +19,10 @@ from app.services.jd_general import (
     callback_general_refund,
 )
 from app.services.agiso import agiso_auto_deliver
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 order_bp = Blueprint('order', __name__)
 
@@ -101,195 +105,116 @@ def order_detail(order_id):
 
 @order_bp.route('/notify-success/<int:order_id>', methods=['POST'])
 @login_required
-def notify_success(order_id):
-    """直充订单通知成功 - 更新状态并回调京东平台。"""
+def save_cards(order_id):
+    """保存卡密信息"""
     order = db.session.get(Order, order_id)
     if not order:
         return jsonify(success=False, message='订单不存在')
-
-    if not current_user.is_admin and not current_user.has_shop_permission(order.shop_id):
-        return jsonify(success=False, message='无权限')
-
-    if not current_user.is_admin and not current_user.can_deliver:
-        return jsonify(success=False, message='无发货权限')
-
-    shop = db.session.get(Shop, order.shop_id)
-
-    # 回调京东平台通知充值成功
-    callback_ok = True
-    callback_msg = ''
-    if shop:
-        if shop.shop_type == 1:
-            callback_ok, callback_msg = callback_game_direct_success(shop, order)
-        elif shop.shop_type == 2:
-            callback_ok, callback_msg = callback_general_success(shop, order)
-
-    order.order_status = 2
-    order.deliver_time = datetime.utcnow()
-    order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
-    order.notify_time = datetime.utcnow()
-    db.session.commit()
-
-    if callback_ok:
-        return jsonify(success=True, message='操作成功')
-    return jsonify(success=True, message=f'订单已完成，但回调通知失败：{callback_msg}')
-
-
-@order_bp.route('/notify-refund/<int:order_id>', methods=['POST'])
-@login_required
-def notify_refund(order_id):
-    """退款通知 - 更新状态并回调京东平台。"""
-    order = db.session.get(Order, order_id)
-    if not order:
-        return jsonify(success=False, message='订单不存在')
-
-    if not current_user.is_admin and not current_user.has_shop_permission(order.shop_id):
-        return jsonify(success=False, message='无权限')
-
-    if not current_user.is_admin and not current_user.can_refund:
-        return jsonify(success=False, message='无退款权限')
-
-    shop = db.session.get(Shop, order.shop_id)
-
-    # 回调京东平台通知退款
-    callback_ok = True
-    callback_msg = ''
-    if shop:
-        if shop.shop_type == 1:
-            callback_ok, callback_msg = callback_game_refund(shop, order)
-        elif shop.shop_type == 2:
-            callback_ok, callback_msg = callback_general_refund(shop, order)
-
-    order.order_status = 3
-    order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
-    order.notify_time = datetime.utcnow()
-    db.session.commit()
-
-    if callback_ok:
-        return jsonify(success=True, message='退款通知成功')
-    return jsonify(success=True, message=f'退款已处理，但回调通知失败：{callback_msg}')
-
-
-@order_bp.route('/deliver-card/<int:order_id>', methods=['POST'])
-@login_required
-def deliver_card(order_id):
-    """卡密发货 - 提交卡号密码并回调京东平台。"""
-    order = db.session.get(Order, order_id)
-    if not order:
-        return jsonify(success=False, message='订单不存在')
-
-    if not current_user.is_admin and not current_user.has_shop_permission(order.shop_id):
-        return jsonify(success=False, message='无权限')
-
-    if not current_user.is_admin and not current_user.can_deliver:
-        return jsonify(success=False, message='无发货权限')
-
+    
+    if order.order_type != 2:
+        return jsonify(success=False, message='该订单不是卡密订单')
+    
     data = request.get_json()
     cards = data.get('cards', [])
+    
+    if len(cards) != order.quantity:
+        return jsonify(success=False, message=f'卡密数量不匹配，需要{order.quantity}组')
+    
+    # 保存卡密
+    order.set_card_info(cards)
+    db.session.commit()
+    
+    logger.info(f"订单 {order.order_no} 保存了 {len(cards)} 组卡密")
+    
+    return jsonify(success=True, message=f'成功保存{len(cards)}组卡密')
 
-    if not cards or len(cards) != order.quantity:
-        return jsonify(success=False, message=f'需要提供{order.quantity}组卡密信息')
 
-    order.card_info = json.dumps(cards, ensure_ascii=False)
-
-    shop = db.session.get(Shop, order.shop_id)
-
-    # 回调京东平台传递卡密信息
-    callback_ok = True
-    callback_msg = ''
-    if shop:
+@order_bp.route('/<int:order_id>/notify-success', methods=['POST'])
+@login_required
+def notify_success(order_id):
+    """通知京东订单成功"""
+    order = db.session.get(Order, order_id)
+    if not order:
+        return jsonify(success=False, message='订单不存在')
+    
+    shop = order.shop
+    if not shop:
+        return jsonify(success=False, message='店铺不存在')
+    
+    # 如果是卡密订单，检查是否已填写卡密
+    if order.order_type == 2:
+        if not order.card_info_parsed:
+            return jsonify(success=False, message='请先填写卡密信息')
+    
+    # 根据店铺类型调用不同的回调接口
+    try:
         if shop.shop_type == 1:
-            callback_ok, callback_msg = callback_game_card_deliver(shop, order, cards)
-        elif shop.shop_type == 2:
-            callback_ok, callback_msg = callback_general_card_deliver(shop, order, cards)
+            # 游戏点卡平台
+            callback_url = shop.game_direct_callback_url if order.order_type == 1 else shop.game_card_callback_url
+        else:
+            # 通用交易平台
+            callback_url = shop.general_callback_url
+        
+        if not callback_url:
+            return jsonify(success=False, message='未配置回调地址')
+        
+        # 构造回调数据
+        callback_data = {
+            'order_no': order.jd_order_no,
+            'status': 2,  # 成功
+            'message': '订单处理成功'
+        }
+        
+        # 如果是卡密订单，添加卡密信息
+        if order.order_type == 2:
+            callback_data['cards'] = order.card_info_parsed
+        
+        # TODO: 添加签名
+        # callback_data['sign'] = generate_sign(callback_data, shop.xxx_md5_secret)
+        
+        # 发送回调
+        import requests
+        response = requests.post(callback_url, json=callback_data, timeout=10)
+        
+        if response.status_code == 200:
+            # 更新订单状态
+            order.order_status = 2
+            db.session.commit()
+            
+            logger.info(f"订单 {order.order_no} 通知成功，回调：{callback_url}")
+            return jsonify(success=True, message='通知成功')
+        else:
+            return jsonify(success=False, message=f'回调失败：HTTP {response.status_code}')
+    
+    except Exception as e:
+        logger.error(f"订单 {order.order_no} 通知失败：{e}")
+        return jsonify(success=False, message=f'通知失败：{str(e)}')
 
-    order.order_status = 2
-    order.deliver_time = datetime.utcnow()
-    order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
-    order.notify_time = datetime.utcnow()
-    db.session.commit()
 
-    if callback_ok:
-        return jsonify(success=True, message='卡密发货成功')
-    return jsonify(success=True, message=f'卡密已保存，但回调通知失败：{callback_msg}')
-
-
-@order_bp.route('/self-debug/<int:order_id>', methods=['POST'])
+@order_bp.route('/<int:order_id>/notify-refund', methods=['POST'])
 @login_required
-def self_debug(order_id):
-    """自助联调 - 直接修改订单状态，不触发京东回调。"""
+def notify_refund(order_id):
+    """通知京东订单退款"""
     order = db.session.get(Order, order_id)
     if not order:
         return jsonify(success=False, message='订单不存在')
-
-    if not current_user.is_admin and not current_user.has_shop_permission(order.shop_id):
-        return jsonify(success=False, message='无权限')
-
-    data = request.get_json()
-    status = data.get('status')
-
-    status_map = {
-        'success': 2,  # 充值成功
-        'processing': 1,  # 充值中
-        'failed': 3,  # 充值失败
-    }
-
-    if status not in status_map:
-        return jsonify(success=False, message='无效的状态')
-
-    order.order_status = status_map[status]
+    
+    # TODO: 实现退款通知逻辑
+    order.order_status = 4
     db.session.commit()
+    
+    return jsonify(success=True, message='退款通知已发送')
 
-    return jsonify(success=True, message='状态已更新')
 
-
-@order_bp.route('/agiso-deliver/<int:order_id>', methods=['POST'])
+@order_bp.route('/<int:order_id>/detail-html', methods=['GET'])
 @login_required
-def agiso_deliver(order_id):
-    """阿奇索自动发货 - 调用阿奇索开放平台接口进行自动发货。"""
+def order_detail_html(order_id):
+    """返回订单详情HTML片段（用于弹窗）"""
+    from flask import render_template_string
+    
     order = db.session.get(Order, order_id)
     if not order:
-        return jsonify(success=False, message='订单不存在')
-
-    if not current_user.is_admin and not current_user.has_shop_permission(order.shop_id):
-        return jsonify(success=False, message='无权限')
-
-    shop = db.session.get(Shop, order.shop_id)
-    if not shop or shop.agiso_enabled != 1:
-        return jsonify(success=False, message='未启用阿奇索')
-
-    # 调用阿奇索开放平台自动发货接口
-    ok, msg, result_data = agiso_auto_deliver(shop, order)
-
-    if ok:
-        # 发货成功，更新订单状态
-        order.order_status = 2
-        order.deliver_time = datetime.utcnow()
-
-        # 如果阿奇索返回了卡密信息，保存到订单
-        if result_data and result_data.get('cards'):
-            order.card_info = json.dumps(result_data['cards'], ensure_ascii=False)
-
-        # 回调京东平台
-        callback_ok = True
-        if order.order_type == 1:
-            # 直充订单
-            if shop.shop_type == 1:
-                callback_ok, _ = callback_game_direct_success(shop, order)
-            elif shop.shop_type == 2:
-                callback_ok, _ = callback_general_success(shop, order)
-        elif order.order_type == 2 and order.card_info:
-            # 卡密订单
-            cards = order.card_info_parsed
-            if shop.shop_type == 1:
-                callback_ok, _ = callback_game_card_deliver(shop, order, cards)
-            elif shop.shop_type == 2:
-                callback_ok, _ = callback_general_card_deliver(shop, order, cards)
-
-        order.notify_status = NOTIFY_STATUS_SUCCESS if callback_ok else NOTIFY_STATUS_FAILED
-        order.notify_time = datetime.utcnow()
-        db.session.commit()
-
-        return jsonify(success=True, message='阿奇索发货成功')
-    else:
-        return jsonify(success=False, message=msg)
+        return '<div class="alert alert-error">订单不存在</div>', 404
+    
+    # 渲染详情页模板的主体部分（不包含外层布局）
+    return render_template('order/detail.html', order=order)

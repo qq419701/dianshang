@@ -1,0 +1,155 @@
+{% extends "layouts/base.html" %}
+{% block title %}订单管理{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-title">📦 订单管理</div>
+
+    <!-- Filters -->
+    <form method="GET" class="form-inline">
+        <div class="form-group">
+            <label>店铺</label>
+            <select name="shop_id" class="form-control">
+                <option value="">全部店铺</option>
+                {% for s in shops %}
+                <option value="{{ s.id }}" {{ 'selected' if request.args.get('shop_id')|int == s.id }}>{{ s.shop_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>店铺类型</label>
+            <select name="shop_type" class="form-control">
+                <option value="">全部</option>
+                <option value="1" {{ 'selected' if request.args.get('shop_type') == '1' }}>游戏点卡</option>
+                <option value="2" {{ 'selected' if request.args.get('shop_type') == '2' }}>通用交易</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>订单类型</label>
+            <select name="order_type" class="form-control">
+                <option value="">全部</option>
+                <option value="1" {{ 'selected' if request.args.get('order_type') == '1' }}>直充</option>
+                <option value="2" {{ 'selected' if request.args.get('order_type') == '2' }}>卡密</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>状态</label>
+            <select name="order_status" class="form-control">
+                <option value="-1">全部</option>
+                <option value="0" {{ 'selected' if request.args.get('order_status') == '0' }}>待支付</option>
+                <option value="1" {{ 'selected' if request.args.get('order_status') == '1' }}>处理中</option>
+                <option value="2" {{ 'selected' if request.args.get('order_status') == '2' }}>已完成</option>
+                <option value="3" {{ 'selected' if request.args.get('order_status') == '3' }}>已取消</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>京东订单号</label>
+            <input type="text" name="jd_order_no" class="form-control" value="{{ request.args.get('jd_order_no', '') }}" placeholder="搜索订单号">
+        </div>
+        <div class="form-group">
+            <label>开始日期</label>
+            <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+        </div>
+        <div class="form-group">
+            <label>结束日期</label>
+            <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary">搜索</button>
+        </div>
+    </form>
+
+    <!-- Order table -->
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>京东订单号</th>
+                    <th>商品名称</th>
+                    <th>店铺</th>
+                    <th>业务类型</th>
+                    <th>订单状态</th>
+                    <th>金额</th>
+                    <th>数量</th>
+                    <th>充值账号</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.jd_order_no }}</td>
+                    <td>{{ order.product_info or '-' }}</td>
+                    <td>{{ order.shop.shop_name if order.shop else '-' }}</td>
+                    <td>{{ order.order_type_label }}</td>
+                    <td>
+                        {% if order.order_status == 0 %}
+                        <span class="badge badge-default">待支付</span>
+                        {% elif order.order_status == 1 %}
+                        <span class="badge badge-warning">处理中</span>
+                        {% elif order.order_status == 2 %}
+                        <span class="badge badge-success">已完成</span>
+                        {% elif order.order_status == 3 %}
+                        <span class="badge badge-danger">已取消</span>
+                        {% endif %}
+                    </td>
+                    <td>¥{{ order.amount_yuan }}</td>
+                    <td>{{ order.quantity }}</td>
+                    <td>{{ order.produce_account or '-' }}</td>
+                    <td>{{ order.create_time.strftime('%m-%d %H:%M') if order.create_time else '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('order.order_detail', order_id=order.id) }}" class="btn btn-sm">📄 详情</a>
+                        <div class="dropdown" style="display:inline-block;">
+                            <button class="btn btn-sm" onclick="toggleDropdown(this)">操作 ▼</button>
+                            <div class="dropdown-content">
+                                {% if order.order_type == 1 %}
+                                <button class="dropdown-item" onclick="notifySuccess({{ order.id }})">✅ 通知成功</button>
+                                {% else %}
+                                <button class="dropdown-item" onclick="showCardModal({{ order.id }}, {{ order.quantity }})">🚚 卡密发货</button>
+                                {% endif %}
+                                <button class="dropdown-item" onclick="notifyRefund({{ order.id }})">💰 通知退款</button>
+                                {% if order.shop and order.shop.agiso_enabled == 1 %}
+                                <button class="dropdown-item" onclick="agisoDeliver({{ order.id }})">🚚 阿奇索发货</button>
+                                {% endif %}
+                                <div class="dropdown-divider"></div>
+                                <button class="dropdown-item" onclick="selfDebug({{ order.id }}, 'success')">⚠️ 充值成功</button>
+                                <button class="dropdown-item" onclick="selfDebug({{ order.id }}, 'processing')">⚠️ 充值中</button>
+                                <button class="dropdown-item" onclick="selfDebug({{ order.id }}, 'failed')">⚠️ 充值失败</button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not orders %}
+                <tr><td colspan="10" class="text-center">暂无订单数据</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}&{{ request.query_string.decode().replace('page=' ~ pagination.page, '') }}">上一页</a>
+        {% endif %}
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if p %}
+                <a href="?page={{ p }}" class="{{ 'active' if p == pagination.page }}">{{ p }}</a>
+            {% else %}
+                <span>...</span>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Card Modal -->
+<div class="modal-overlay" id="cardModal">
+    <div class="modal"></div>
+</div>
+{% endblock %}
