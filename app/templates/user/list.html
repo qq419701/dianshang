@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 电商平台管理系统{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>👥 用户管理</h2>
+    
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="搜索用户名/姓名/邮箱" value="{{ search }}">
+        <button class="btn btn-primary" onclick="searchUsers()">搜索</button>
+        <button class="btn btn-success" onclick="showCreateModal()">新增用户</button>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>用户名</th>
+                <th>真实姓名</th>
+                <th>邮箱</th>
+                <th>手机号</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>最后登录</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.real_name or '-' }}</td>
+                <td>{{ user.email or '-' }}</td>
+                <td>{{ user.mobile or '-' }}</td>
+                <td>{{ user.role.name if user.role else '-' }}</td>
+                <td>
+                    {% if user.status == 1 %}
+                    <span class="badge badge-success">正常</span>
+                    {% else %}
+                    <span class="badge badge-danger">禁用</span>
+                    {% endif %}
+                </td>
+                <td>{{ user.last_login_time.strftime('%Y-%m-%d %H:%M') if user.last_login_time else '-' }}</td>
+                <td>
+                    <button class="btn btn-primary" onclick="editUser({{ user.id }})">编辑</button>
+                    <button class="btn btn-danger" onclick="deleteUser({{ user.id }})">删除</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="9" style="text-align: center; color: #999;">暂无数据</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}&search={{ search }}">上一页</a>
+        {% endif %}
+        
+        {% for page_num in pagination.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <a href="?page={{ page_num }}&search={{ search }}" 
+                   class="{% if page_num == pagination.page %}active{% endif %}">
+                    {{ page_num }}
+                </a>
+            {% else %}
+                <span>...</span>
+            {% endif %}
+        {% endfor %}
+        
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}&search={{ search }}">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 新增/编辑用户模态框 -->
+<div id="userModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 30px; border-radius: 8px; width: 500px; max-height: 80vh; overflow-y: auto;">
+        <h3 id="modalTitle" style="margin-bottom: 20px;">新增用户</h3>
+        <form id="userForm">
+            <input type="hidden" id="userId" name="user_id">
+            
+            <div class="form-group">
+                <label>用户名 *</label>
+                <input type="text" name="username" id="username" required>
+            </div>
+            
+            <div class="form-group">
+                <label>密码 <span id="passwordHint">(留空不修改)</span></label>
+                <input type="password" name="password" id="password">
+            </div>
+            
+            <div class="form-group">
+                <label>真实姓名</label>
+                <input type="text" name="real_name" id="real_name">
+            </div>
+            
+            <div class="form-group">
+                <label>邮箱</label>
+                <input type="email" name="email" id="email">
+            </div>
+            
+            <div class="form-group">
+                <label>手机号</label>
+                <input type="text" name="mobile" id="mobile">
+            </div>
+            
+            <div class="form-group">
+                <label>角色</label>
+                <select name="role_id" id="role_id">
+                    <option value="">请选择角色</option>
+                    {% for role in roles %}
+                    <option value="{{ role.id }}">{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>商户ID</label>
+                <input type="number" name="merchant_id" id="merchant_id" value="1">
+            </div>
+            
+            <div class="form-group" id="statusGroup" style="display: none;">
+                <label>状态</label>
+                <select name="status" id="status">
+                    <option value="1">正常</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">保存</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">取消</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function searchUsers() {
+        const search = document.getElementById('searchInput').value;
+        window.location.href = '?search=' + encodeURIComponent(search);
+    }
+    
+    function showCreateModal() {
+        document.getElementById('modalTitle').textContent = '新增用户';
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('username').readOnly = false;
+        document.getElementById('password').required = true;
+        document.getElementById('passwordHint').textContent = '*';
+        document.getElementById('statusGroup').style.display = 'none';
+        document.getElementById('userModal').style.display = 'block';
+    }
+    
+    function editUser(userId) {
+        // 获取当前行的数据
+        const row = event.target.closest('tr');
+        const cells = row.cells;
+        
+        document.getElementById('modalTitle').textContent = '编辑用户';
+        document.getElementById('userId').value = userId;
+        document.getElementById('username').value = cells[1].textContent;
+        document.getElementById('username').readOnly = true;
+        document.getElementById('real_name').value = cells[2].textContent !== '-' ? cells[2].textContent : '';
+        document.getElementById('email').value = cells[3].textContent !== '-' ? cells[3].textContent : '';
+        document.getElementById('mobile').value = cells[4].textContent !== '-' ? cells[4].textContent : '';
+        document.getElementById('password').required = false;
+        document.getElementById('password').value = '';
+        document.getElementById('passwordHint').textContent = '(留空不修改)';
+        document.getElementById('statusGroup').style.display = 'block';
+        document.getElementById('status').value = cells[6].textContent.includes('正常') ? '1' : '0';
+        document.getElementById('userModal').style.display = 'block';
+    }
+    
+    function closeModal() {
+        document.getElementById('userModal').style.display = 'none';
+    }
+    
+    function deleteUser(userId) {
+        if (!confirm('确定要删除该用户吗？')) return;
+        
+        const formData = new FormData();
+        formData.append('user_id', userId);
+        
+        fetch('/user/delete', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                setTimeout(() => location.reload(), 1000);
+            }
+        })
+        .catch(error => {
+            showToast('操作失败', 'error');
+        });
+    }
+    
+    document.getElementById('userForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const userId = document.getElementById('userId').value;
+        const url = userId ? '/user/update' : '/user/create';
+        
+        fetch(url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            showToast(data.message, data.success ? 'success' : 'error');
+            if (data.success) {
+                setTimeout(() => location.reload(), 1000);
+            }
+        })
+        .catch(error => {
+            showToast('操作失败', 'error');
+        });
+    });
+    
+    // 按Enter键搜索
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') searchUsers();
+    });
+</script>
+{% endblock %}
