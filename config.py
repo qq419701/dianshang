@@ -12,8 +12,6 @@ class Config:
         'pool_recycle': 3600,
         'pool_pre_ping': True,
     }
-    # Encryption key for sensitive fields
-    ENCRYPT_KEY = os.environ.get('ENCRYPT_KEY', 'default-encrypt-key-change-in-prod')
 
 
 class TestConfig(Config):
