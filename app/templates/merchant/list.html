@@ -18,34 +18,35 @@
                 <th>ID</th>
                 <th>商户名称</th>
                 <th>商户代码</th>
+                <th>店铺数量</th>
                 <th>联系人</th>
                 <th>联系手机</th>
-                <th>联系邮箱</th>
                 <th>状态</th>
                 <th>创建时间</th>
                 <th>操作</th>
             </tr>
         </thead>
         <tbody>
-            {% for merchant in merchants %}
+            {% for item in merchants %}
             <tr>
-                <td>{{ merchant.id }}</td>
-                <td>{{ merchant.name }}</td>
-                <td>{{ merchant.code or '-' }}</td>
-                <td>{{ merchant.contact_name or '-' }}</td>
-                <td>{{ merchant.contact_mobile or '-' }}</td>
-                <td>{{ merchant.contact_email or '-' }}</td>
+                <td>{{ item.merchant.id }}</td>
+                <td>{{ item.merchant.name }}</td>
+                <td>{{ item.merchant.code or '-' }}</td>
+                <td>{{ item.shop_count }}</td>
+                <td>{{ item.merchant.contact_name or '-' }}</td>
+                <td>{{ item.merchant.contact_mobile or '-' }}</td>
                 <td>
-                    {% if merchant.status == 1 %}
+                    {% if item.merchant.status == 1 %}
                     <span class="badge badge-success">正常</span>
                     {% else %}
                     <span class="badge badge-danger">禁用</span>
                     {% endif %}
                 </td>
-                <td>{{ merchant.create_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ item.merchant.create_time.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
-                    <button class="btn btn-primary" onclick="editMerchant({{ merchant.id }})">编辑</button>
-                    <button class="btn btn-danger" onclick="deleteMerchant({{ merchant.id }})">删除</button>
+                    <button class="btn btn-primary" onclick="location.href='/merchant/detail/{{ item.merchant.id }}'">查看店铺</button>
+                    <button class="btn btn-primary" onclick="editMerchant({{ item.merchant.id }})">编辑</button>
+                    <button class="btn btn-danger" onclick="deleteMerchant({{ item.merchant.id }})">删除</button>
                 </td>
             </tr>
             {% else %}
@@ -156,9 +157,8 @@
         document.getElementById('merchantId').value = merchantId;
         document.getElementById('name').value = cells[1].textContent;
         document.getElementById('code').value = cells[2].textContent !== '-' ? cells[2].textContent : '';
-        document.getElementById('contact_name').value = cells[3].textContent !== '-' ? cells[3].textContent : '';
-        document.getElementById('contact_mobile').value = cells[4].textContent !== '-' ? cells[4].textContent : '';
-        document.getElementById('contact_email').value = cells[5].textContent !== '-' ? cells[5].textContent : '';
+        document.getElementById('contact_name').value = cells[4].textContent !== '-' ? cells[4].textContent : '';
+        document.getElementById('contact_mobile').value = cells[5].textContent !== '-' ? cells[5].textContent : '';
         document.getElementById('statusGroup').style.display = 'block';
         document.getElementById('status').value = cells[6].textContent.includes('正常') ? '1' : '0';
         document.getElementById('merchantModal').style.display = 'block';

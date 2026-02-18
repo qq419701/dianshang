@@ -8,6 +8,21 @@
 <div class="card">
     <form method="GET" action="/admin/orders" class="search-bar">
         <input type="text" name="search" value="{{ search }}" placeholder="输入京东订单号或我方订单号搜索...">
+        
+        <select name="merchant_id" id="merchantSelect" onchange="loadShops(this.value)">
+            <option value="0" {% if merchant_id == 0 %}selected{% endif %}>全部商户</option>
+            {% for merchant in merchants %}
+            <option value="{{ merchant.id }}" {% if merchant_id == merchant.id %}selected{% endif %}>{{ merchant.name }}</option>
+            {% endfor %}
+        </select>
+        
+        <select name="shop_id" id="shopSelect">
+            <option value="0" {% if shop_id == 0 %}selected{% endif %}>全部店铺</option>
+            {% for shop in shops %}
+            <option value="{{ shop.id }}" {% if shop_id == shop.id %}selected{% endif %}>{{ shop.shop_name }}</option>
+            {% endfor %}
+        </select>
+        
         <select name="biz_type">
             <option value="0" {% if biz_type == 0 %}selected{% endif %}>全部业务类型</option>
             <option value="1" {% if biz_type == 1 %}selected{% endif %}>通用交易</option>
@@ -33,6 +48,8 @@
             <tr>
                 <th>我方订单号</th>
                 <th>京东订单号</th>
+                <th>商户</th>
+                <th>店铺</th>
                 <th>业务类型</th>
                 <th>订单状态</th>
                 <th>金额（元）</th>
@@ -47,6 +64,8 @@
             <tr>
                 <td>{{ order.order_no }}</td>
                 <td>{{ order.jd_order_no }}</td>
+                <td>{{ order.merchant_id }}</td>
+                <td>{{ order.shop_id or '-' }}</td>
                 <td>
                     {% if order.biz_type == 1 %}
                         <span class="badge badge-info">通用交易</span>
@@ -78,7 +97,7 @@
             {% endfor %}
             {% if not orders %}
             <tr>
-                <td colspan="9" style="text-align: center; color: #999; padding: 40px;">暂无订单数据</td>
+                <td colspan="11" style="text-align: center; color: #999; padding: 40px;">暂无订单数据</td>
             </tr>
             {% endif %}
         </tbody>
@@ -88,21 +107,59 @@
     {% if pagination.pages > 1 %}
     <div class="pagination">
         {% if pagination.has_prev %}
-        <a href="?page={{ pagination.prev_num }}&search={{ search }}&biz_type={{ biz_type }}&status={{ status }}">上一页</a>
+        <a href="?page={{ pagination.prev_num }}&search={{ search }}&merchant_id={{ merchant_id }}&shop_id={{ shop_id }}&biz_type={{ biz_type }}&status={{ status }}">上一页</a>
         {% endif %}
 
         {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
             {% if p %}
-                <a href="?page={{ p }}&search={{ search }}&biz_type={{ biz_type }}&status={{ status }}" class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+                <a href="?page={{ p }}&search={{ search }}&merchant_id={{ merchant_id }}&shop_id={{ shop_id }}&biz_type={{ biz_type }}&status={{ status }}" class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
             {% else %}
                 <span style="padding: 6px;">...</span>
             {% endif %}
         {% endfor %}
 
         {% if pagination.has_next %}
-        <a href="?page={{ pagination.next_num }}&search={{ search }}&biz_type={{ biz_type }}&status={{ status }}">下一页</a>
+        <a href="?page={{ pagination.next_num }}&search={{ search }}&merchant_id={{ merchant_id }}&shop_id={{ shop_id }}&biz_type={{ biz_type }}&status={{ status }}">下一页</a>
         {% endif %}
     </div>
     {% endif %}
 </div>
+
+<script>
+function loadShops(merchantId) {
+    const shopSelect = document.getElementById('shopSelect');
+    shopSelect.innerHTML = '<option value="0">全部店铺</option>';
+    
+    if (!merchantId || merchantId == '0') return;
+    
+    fetch('/shop/list/' + merchantId)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                data.data.forEach(shop => {
+                    const option = document.createElement('option');
+                    option.value = shop.id;
+                    option.textContent = shop.shop_name;
+                    shopSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(err => console.error('加载店铺失败', err));
+}
+
+// 页面加载时如果已选择商户，则加载店铺列表
+window.addEventListener('DOMContentLoaded', function() {
+    const merchantId = document.getElementById('merchantSelect').value;
+    if (merchantId && merchantId != '0') {
+        loadShops(merchantId);
+        // 恢复之前选择的店铺
+        setTimeout(() => {
+            const shopId = {{ shop_id }};
+            if (shopId) {
+                document.getElementById('shopSelect').value = shopId;
+            }
+        }, 500);
+    }
+});
+</script>
 {% endblock %}

@@ -305,10 +305,11 @@
         <nav>
             <a href="/admin/" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">首页</a>
             <a href="/admin/orders" class="{% if request.endpoint == 'admin.order_list' %}active{% endif %}">订单管理</a>
+            <a href="/statistics/" class="{% if request.endpoint == 'statistics.index' %}active{% endif %}">统计报表</a>
+            <a href="/merchant/" class="{% if request.endpoint == 'merchant.merchant_list' %}active{% endif %}">商户管理</a>
             <a href="/admin/config" class="{% if request.endpoint == 'admin.config_page' %}active{% endif %}">系统配置</a>
             <a href="/admin/callbacks" class="{% if request.endpoint == 'admin.callback_list' %}active{% endif %}">回调日志</a>
             <a href="/user/" class="{% if request.endpoint == 'user.user_list' %}active{% endif %}">用户管理</a>
-            <a href="/merchant/" class="{% if request.endpoint == 'merchant.merchant_list' %}active{% endif %}">商户管理</a>
             <a href="/notification/" class="{% if request.endpoint == 'notification.notification_list' %}active{% endif %}">
                 通知消息
                 {% if unread_count > 0 %}
