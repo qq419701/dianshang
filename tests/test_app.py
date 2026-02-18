@@ -393,3 +393,200 @@ class TestNotificationService:
         # shop.notify_enabled == 0, should not send
         send_order_notification(order, shop)
         assert NotificationLog.query.count() == 0
+
+
+# ---- 京东游戏点卡平台接口测试 ----
+
+class TestJdGameService:
+    def test_generate_game_sign(self, app):
+        """测试京东游戏点卡平台MD5签名生成"""
+        from app.services.jd_game import generate_game_sign
+        params = {'jdOrderId': 'JD001', 'orderId': 'ORD001', 'status': 'SUCCESS'}
+        sign = generate_game_sign(params, 'test_secret')
+        assert sign is not None
+        assert len(sign) == 32  # MD5签名为32位
+
+    def test_verify_game_sign_valid(self, app):
+        """测试京东游戏点卡平台签名验证 - 有效签名"""
+        from app.services.jd_game import generate_game_sign, verify_game_sign
+        params = {'jdOrderId': 'JD001', 'orderId': 'ORD001', 'status': 'SUCCESS'}
+        sign = generate_game_sign(params, 'test_secret')
+        params['sign'] = sign
+        assert verify_game_sign(params, 'test_secret') is True
+
+    def test_verify_game_sign_invalid(self, app):
+        """测试京东游戏点卡平台签名验证 - 无效签名"""
+        from app.services.jd_game import verify_game_sign
+        params = {'jdOrderId': 'JD001', 'orderId': 'ORD001', 'sign': 'invalid_sign'}
+        assert verify_game_sign(params, 'test_secret') is False
+
+    def test_verify_game_sign_no_secret(self, app):
+        """测试京东游戏点卡平台签名验证 - 未配置密钥时跳过验签"""
+        from app.services.jd_game import verify_game_sign
+        params = {'jdOrderId': 'JD001'}
+        assert verify_game_sign(params, '') is True
+        assert verify_game_sign(params, None) is True
+
+    def test_verify_game_sign_missing_sign(self, app):
+        """测试京东游戏点卡平台签名验证 - 缺少sign参数"""
+        from app.services.jd_game import verify_game_sign
+        params = {'jdOrderId': 'JD001', 'orderId': 'ORD001'}
+        assert verify_game_sign(params, 'test_secret') is False
+
+    def test_sign_consistency(self, app):
+        """测试签名一致性 - 相同参数应产生相同签名"""
+        from app.services.jd_game import generate_game_sign
+        params = {'b': '2', 'a': '1', 'c': '3'}
+        sign1 = generate_game_sign(params, 'secret')
+        sign2 = generate_game_sign(params, 'secret')
+        assert sign1 == sign2
+
+    def test_sign_order_independent(self, app):
+        """测试签名与参数顺序无关"""
+        from app.services.jd_game import generate_game_sign
+        params1 = {'a': '1', 'b': '2', 'c': '3'}
+        params2 = {'c': '3', 'a': '1', 'b': '2'}
+        assert generate_game_sign(params1, 'secret') == generate_game_sign(params2, 'secret')
+
+
+# ---- 京东通用交易平台接口测试 ----
+
+class TestJdGeneralService:
+    def test_generate_general_sign(self, app):
+        """测试京东通用交易平台MD5签名生成"""
+        from app.services.jd_general import generate_general_sign
+        params = {'venderId': 'V001', 'jdOrderId': 'JD001', 'status': 'SUCCESS'}
+        sign = generate_general_sign(params, 'test_secret')
+        assert sign is not None
+        assert len(sign) == 32
+
+    def test_verify_general_sign_valid(self, app):
+        """测试京东通用交易平台签名验证 - 有效签名"""
+        from app.services.jd_general import generate_general_sign, verify_general_sign
+        params = {'venderId': 'V001', 'jdOrderId': 'JD001', 'status': 'SUCCESS'}
+        sign = generate_general_sign(params, 'test_secret')
+        params['sign'] = sign
+        assert verify_general_sign(params, 'test_secret') is True
+
+    def test_verify_general_sign_invalid(self, app):
+        """测试京东通用交易平台签名验证 - 无效签名"""
+        from app.services.jd_general import verify_general_sign
+        params = {'venderId': 'V001', 'sign': 'bad_sign'}
+        assert verify_general_sign(params, 'test_secret') is False
+
+    def test_verify_general_sign_no_secret(self, app):
+        """测试京东通用交易平台签名验证 - 未配置密钥时跳过验签"""
+        from app.services.jd_general import verify_general_sign
+        params = {'venderId': 'V001'}
+        assert verify_general_sign(params, '') is True
+        assert verify_general_sign(params, None) is True
+
+
+# ---- 阿奇索开放平台接口测试 ----
+
+class TestAgisoService:
+    def test_generate_agiso_sign(self, app):
+        """测试阿奇索开放平台签名生成"""
+        from app.services.agiso import generate_agiso_sign
+        params = {'appId': 'APP001', 'jdOrderId': 'JD001'}
+        sign = generate_agiso_sign(params, 'app_secret')
+        assert sign is not None
+        assert len(sign) == 32
+
+    def test_agiso_sign_order_independent(self, app):
+        """测试阿奇索签名与参数顺序无关"""
+        from app.services.agiso import generate_agiso_sign
+        params1 = {'appId': 'APP001', 'jdOrderId': 'JD001', 'orderId': 'ORD001'}
+        params2 = {'orderId': 'ORD001', 'appId': 'APP001', 'jdOrderId': 'JD001'}
+        assert generate_agiso_sign(params1, 'secret') == generate_agiso_sign(params2, 'secret')
+
+    def test_agiso_deliver_not_enabled(self, app, db, shop, order):
+        """测试阿奇索未启用时返回错误"""
+        from app.services.agiso import agiso_auto_deliver
+        shop.agiso_enabled = 0
+        ok, msg, data = agiso_auto_deliver(shop, order)
+        assert ok is False
+        assert '未启用' in msg
+
+    def test_agiso_deliver_missing_config(self, app, db, shop, order):
+        """测试阿奇索配置不完整时返回错误"""
+        from app.services.agiso import agiso_auto_deliver
+        shop.agiso_enabled = 1
+        shop.agiso_app_id = None
+        ok, msg, data = agiso_auto_deliver(shop, order)
+        assert ok is False
+        assert '配置不完整' in msg
+
+    def test_agiso_deliver_missing_token(self, app, db, shop, order):
+        """测试阿奇索未配置访问令牌时返回错误"""
+        from app.services.agiso import agiso_auto_deliver
+        shop.agiso_enabled = 1
+        shop.agiso_app_id = 'APP001'
+        shop.agiso_app_secret = 'SECRET'
+        shop.agiso_access_token = None
+        ok, msg, data = agiso_auto_deliver(shop, order)
+        assert ok is False
+        assert '访问令牌' in msg
+
+
+# ---- API签名验证集成测试 ----
+
+class TestAPISignatureVerification:
+    def test_create_order_with_valid_game_sign(self, client, db):
+        """测试京东游戏点卡平台订单创建 - 有效签名"""
+        from app.services.jd_game import generate_game_sign
+        shop = Shop(shop_name='签名测试店', shop_code='SIGN001', shop_type=1,
+                    is_enabled=1, game_md5_secret='test_key_123')
+        db.session.add(shop)
+        db.session.commit()
+
+        params = {
+            'shop_code': 'SIGN001',
+            'jd_order_no': 'JD_SIGN_001',
+            'order_type': 1,
+            'amount': 5000,
+            'quantity': 1,
+            'product_info': '签名测试商品',
+        }
+        params['sign'] = generate_game_sign(
+            {k: str(v) for k, v in params.items()}, 'test_key_123'
+        )
+
+        resp = client.post('/api/order/create',
+                           content_type='application/json',
+                           data=json.dumps(params))
+        data = json.loads(resp.data)
+        assert data['success'] is True
+
+    def test_create_order_with_invalid_game_sign(self, client, db):
+        """测试京东游戏点卡平台订单创建 - 无效签名应被拒绝"""
+        shop = Shop(shop_name='签名测试店', shop_code='SIGN002', shop_type=1,
+                    is_enabled=1, game_md5_secret='test_key_123')
+        db.session.add(shop)
+        db.session.commit()
+
+        params = {
+            'shop_code': 'SIGN002',
+            'jd_order_no': 'JD_SIGN_002',
+            'amount': 5000,
+            'sign': 'invalid_sign_value',
+        }
+
+        resp = client.post('/api/order/create',
+                           content_type='application/json',
+                           data=json.dumps(params))
+        data = json.loads(resp.data)
+        assert data['success'] is False
+        assert '签名验证失败' in data['message']
+
+    def test_create_order_without_sign_config(self, client, shop):
+        """测试未配置签名密钥的店铺 - 不需要签名验证"""
+        resp = client.post('/api/order/create',
+                           content_type='application/json',
+                           data=json.dumps({
+                               'shop_code': 'TEST001',
+                               'jd_order_no': 'JD_NOSIGN_001',
+                               'amount': 3000,
+                           }))
+        data = json.loads(resp.data)
+        assert data['success'] is True
