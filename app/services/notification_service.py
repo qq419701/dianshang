@@ -43,48 +43,81 @@ def send_notification(merchant_id, scene, title, content, related_type="", relat
     """
     try:
         # 查询通知配置
-        config = NotificationConfig.query.filter_by(
+        configs = NotificationConfig.query.filter_by(
             merchant_id=merchant_id,
             scene=scene
-        ).first()
+        ).all()
         
-        if not config:
+        if not configs:
             logger.info(f"商户 {merchant_id} 场景 {scene} 未配置通知")
             return
         
-        # 发送邮件
-        if config.enable_email and config.email_to:
-            send_email(
-                merchant_id=merchant_id,
-                scene=scene,
-                to_addresses=config.email_to,
-                title=title,
-                content=content
-            )
-        
-        # 发送Webhook
-        if config.enable_webhook and config.webhook_url:
-            send_webhook(
-                merchant_id=merchant_id,
-                scene=scene,
-                webhook_url=config.webhook_url,
-                title=title,
-                content=content,
-                related_type=related_type,
-                related_id=related_id
-            )
-        
-        # 发送站内信
-        if config.enable_site_msg and user_ids:
-            send_site_message(
-                merchant_id=merchant_id,
-                scene=scene,
-                user_ids=user_ids,
-                title=title,
-                content=content,
-                related_type=related_type,
-                related_id=related_id
-            )
+        for config in configs:
+            # 检查是否启用
+            if hasattr(config, 'is_enabled') and not config.is_enabled:
+                continue
+                
+            # 检查触发事件
+            if hasattr(config, 'trigger_events') and config.trigger_events:
+                if scene not in config.trigger_events:
+                    continue
+            
+            # 发送邮件
+            if config.enable_email and config.email_to:
+                send_email(
+                    merchant_id=merchant_id,
+                    scene=scene,
+                    to_addresses=config.email_to,
+                    title=title,
+                    content=content
+                )
+            
+            # 发送钉钉机器人
+            if hasattr(config, 'notify_type') and config.notify_type == 1 and config.webhook_url:
+                send_dingtalk(
+                    merchant_id=merchant_id,
+                    scene=scene,
+                    webhook_url=config.webhook_url,
+                    secret=getattr(config, 'secret', None),
+                    at_mobiles=getattr(config, 'at_mobiles', None),
+                    title=title,
+                    content=content
+                )
+            
+            # 发送企业微信机器人
+            elif hasattr(config, 'notify_type') and config.notify_type == 2 and config.webhook_url:
+                send_wechat_work(
+                    merchant_id=merchant_id,
+                    scene=scene,
+                    webhook_url=config.webhook_url,
+                    mentioned_mobiles=getattr(config, 'at_mobiles', None),
+                    title=title,
+                    content=content
+                )
+            
+            # 发送普通Webhook
+            elif config.enable_webhook and config.webhook_url:
+                send_webhook(
+                    merchant_id=merchant_id,
+                    scene=scene,
+                    webhook_url=config.webhook_url,
+                    title=title,
+                    content=content,
+                    related_type=related_type,
+                    related_id=related_id
+                )
+            
+            # 发送站内信
+            if config.enable_site_msg and user_ids:
+                send_site_message(
+                    merchant_id=merchant_id,
+                    scene=scene,
+                    user_ids=user_ids,
+                    title=title,
+                    content=content,
+                    related_type=related_type,
+                    related_id=related_id
+                )
             
     except Exception as e:
         logger.exception(f"发送通知失败：merchant_id={merchant_id}, scene={scene}")
@@ -349,3 +382,139 @@ def get_unread_count(user_id):
         return count
     except Exception:
         return 0
+
+
+def send_dingtalk(merchant_id, scene, webhook_url, secret, at_mobiles, title, content):
+    """
+    发送钉钉机器人通知
+    
+    参数：
+        merchant_id: 商户ID
+        scene: 通知场景
+        webhook_url: 钉钉机器人Webhook地址
+        secret: 加签密钥
+        at_mobiles: @ 的手机号列表
+        title: 标题
+        content: 内容
+    """
+    try:
+        import time
+        import hmac
+        import hashlib
+        import base64
+        import urllib.parse
+        
+        # 如果有加签密钥，生成签名
+        if secret:
+            timestamp = str(round(time.time() * 1000))
+            secret_enc = secret.encode('utf-8')
+            string_to_sign = '{}\n{}'.format(timestamp, secret)
+            string_to_sign_enc = string_to_sign.encode('utf-8')
+            hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
+            sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+            webhook_url = f"{webhook_url}&timestamp={timestamp}&sign={sign}"
+        
+        # 构建消息体
+        data = {
+            "msgtype": "markdown",
+            "markdown": {
+                "title": title,
+                "text": f"### {title}\n\n{content}"
+            }
+        }
+        
+        # 添加@功能
+        if at_mobiles:
+            data["at"] = {
+                "atMobiles": at_mobiles if isinstance(at_mobiles, list) else [],
+                "isAtAll": False
+            }
+        
+        # 发送请求
+        response = requests.post(webhook_url, json=data, timeout=10)
+        result = response.json()
+        
+        if result.get('errcode') == 0:
+            log_notification(
+                merchant_id=merchant_id,
+                scene=scene,
+                channel="dingtalk",
+                to_address=webhook_url,
+                title=title,
+                content=content,
+                status=1
+            )
+            logger.info(f"钉钉通知发送成功")
+        else:
+            raise Exception(f"钉钉返回错误: {result.get('errmsg')}")
+            
+    except Exception as e:
+        logger.exception(f"钉钉通知发送失败")
+        log_notification(
+            merchant_id=merchant_id,
+            scene=scene,
+            channel="dingtalk",
+            to_address=webhook_url,
+            title=title,
+            content=content,
+            status=0,
+            error_message=str(e)
+        )
+
+
+def send_wechat_work(merchant_id, scene, webhook_url, mentioned_mobiles, title, content):
+    """
+    发送企业微信机器人通知
+    
+    参数：
+        merchant_id: 商户ID
+        scene: 通知场景
+        webhook_url: 企业微信机器人Webhook地址
+        mentioned_mobiles: @ 的手机号列表
+        title: 标题
+        content: 内容
+    """
+    try:
+        # 构建消息体
+        data = {
+            "msgtype": "markdown",
+            "markdown": {
+                "content": f"**{title}**\n\n{content}"
+            }
+        }
+        
+        # 添加@功能
+        if mentioned_mobiles:
+            if isinstance(mentioned_mobiles, list) and mentioned_mobiles:
+                data["markdown"]["mentioned_mobile_list"] = mentioned_mobiles
+        
+        # 发送请求
+        response = requests.post(webhook_url, json=data, timeout=10)
+        result = response.json()
+        
+        if result.get('errcode') == 0:
+            log_notification(
+                merchant_id=merchant_id,
+                scene=scene,
+                channel="wechat_work",
+                to_address=webhook_url,
+                title=title,
+                content=content,
+                status=1
+            )
+            logger.info(f"企业微信通知发送成功")
+        else:
+            raise Exception(f"企业微信返回错误: {result.get('errmsg')}")
+            
+    except Exception as e:
+        logger.exception(f"企业微信通知发送失败")
+        log_notification(
+            merchant_id=merchant_id,
+            scene=scene,
+            channel="wechat_work",
+            to_address=webhook_url,
+            title=title,
+            content=content,
+            status=0,
+            error_message=str(e)
+        )

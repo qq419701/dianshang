@@ -54,11 +54,16 @@ class NotificationConfig(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     merchant_id = db.Column(db.BigInteger, db.ForeignKey("merchants.id"), comment="商户ID")
+    notify_type = db.Column(db.SmallInteger, comment="通知类型：1=钉钉, 2=企业微信, 3=飞书")
     scene = db.Column(db.String(64), nullable=False, comment="通知场景")
     enable_email = db.Column(db.SmallInteger, default=0, comment="启用邮件：0=禁用, 1=启用")
     email_to = db.Column(db.String(512), comment="邮件接收人（多个用逗号分隔）")
     enable_webhook = db.Column(db.SmallInteger, default=0, comment="启用Webhook：0=禁用, 1=启用")
     webhook_url = db.Column(db.String(512), comment="Webhook地址")
+    secret = db.Column(db.String(255), comment="加签密钥（钉钉）")
+    at_mobiles = db.Column(db.JSON, comment="@ 的手机号列表")
+    trigger_events = db.Column(db.JSON, comment='触发事件：["order_create", "order_success", "order_fail"]')
+    is_enabled = db.Column(db.SmallInteger, default=1, comment="启用状态：0=禁用, 1=启用")
     enable_site_msg = db.Column(db.SmallInteger, default=1, comment="启用站内信：0=禁用, 1=启用")
     create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), comment="创建时间")
     update_time = db.Column(

@@ -20,6 +20,7 @@ class Order(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     merchant_id = db.Column(db.BigInteger, nullable=False, comment="商户ID")
+    shop_id = db.Column(db.BigInteger, db.ForeignKey("shops.id"), comment="店铺ID")
     biz_type = db.Column(db.SmallInteger, nullable=False, comment="业务类型：1=通用交易, 2=游戏点卡")
     order_no = db.Column(db.String(64), nullable=False, comment="我方订单号")
     jd_order_no = db.Column(db.String(64), nullable=False, comment="京东订单号")
@@ -42,9 +43,13 @@ class Order(db.Model):
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, comment="更新时间"
     )
 
+    # 关联关系
+    shop = db.relationship("Shop", backref=db.backref("orders", lazy="dynamic"))
+
     # 唯一约束：京东订单号 + 业务类型
     __table_args__ = (
         db.UniqueConstraint("jd_order_no", "biz_type", name="uk_jd_order_biz"),
+        db.Index("idx_shop_id", "shop_id"),
         {"comment": "订单主表"},
     )
 
